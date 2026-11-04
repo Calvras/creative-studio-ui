@@ -8,6 +8,7 @@ import {
   Download,
   FileText,
   FolderOpen,
+  LayoutGrid,
   Loader2,
   MoreHorizontal,
   Music,
@@ -79,12 +80,12 @@ function fontFamily(font: Overlay["font"]): string {
 function usePreviewSize(
   hostRef: React.RefObject<HTMLDivElement | null>,
   ratio: number,
-  hostKey: string | null,
+  layoutKey: string,
 ) {
   const [box, setBox] = useState({ width: 0, height: 0 });
   useEffect(() => {
-    // The host only mounts once the project has loaded, which can happen after the
-    // first render — re-measure whenever the mounted project changes.
+    // The host mounts with the project and resizes when the timeline dock changes,
+    // so re-measure for both. ResizeObserver is a safety net, not the only trigger.
     const host = hostRef.current;
     if (!host) return;
     const measure = () => {
@@ -101,8 +102,12 @@ function usePreviewSize(
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(host);
-    return () => observer.disconnect();
-  }, [hostRef, ratio, hostKey]);
+    window.addEventListener("resize", measure);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [hostRef, ratio, layoutKey]);
   return box;
 }
 
@@ -164,7 +169,11 @@ export function EditorScreen({
   const audioTracks = project?.audioTracks ?? [];
   const overlays = project?.overlays ?? [];
   const ratio = project ? (ASPECTS[project.aspect]?.ratio ?? 9 / 16) : 9 / 16;
-  const previewBox = usePreviewSize(previewHostRef, ratio, project?.id ?? null);
+  const previewBox = usePreviewSize(
+    previewHostRef,
+    ratio,
+    `${project?.id ?? ""}|${panel}|${selectedClipId ?? ""}`,
+  );
 
   const activeClip = useMemo(() => {
     const hit = clips.find(
@@ -865,8 +874,12 @@ export function EditorScreen({
     if (!clip || !asset || asset.kind !== "image" || !url) return null;
 
     const image = new Image();
+    const loaded = new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve();
+      image.onerror = () => reject(new Error("Image could not be decoded"));
+    });
     image.src = url;
-    await image.decode();
+    await loaded;
     const canvas = document.createElement("canvas");
     canvas.width = width;
     canvas.height = Math.round(width / ratio);
@@ -1173,12 +1186,12 @@ export function EditorScreen({
     <div className="relative flex h-dvh w-full flex-col overflow-hidden bg-phone text-ink">
       {/* Top bar */}
       <div
-        className="flex items-center gap-2 px-4 pb-2"
-        style={{ paddingTop: "max(0.6rem, calc(env(safe-area-inset-top) + 0.35rem))" }}
+        className="flex items-center gap-1.5 px-5 pb-3"
+        style={{ paddingTop: "max(0.85rem, calc(env(safe-area-inset-top) + 0.5rem))" }}
       >
         <button
           onClick={() => navigate({ to: "/" })}
-          className="-ml-1 grid h-9 w-9 place-items-center rounded-full text-ink"
+          className="-ml-2 grid h-10 w-10 place-items-center rounded-full text-ink"
           aria-label="Back to projects"
         >
           <ArrowLeft className="h-5 w-5" />
@@ -1188,8 +1201,8 @@ export function EditorScreen({
           className="min-w-0 flex-1 text-left"
           aria-label="Rename project"
         >
-          <span className="block truncate text-xs font-medium">{headerTitle}</span>
-          <span className="block truncate text-[9px] uppercase tracking-wider text-ink-dim">
+          <span className="block truncate text-sm font-semibold">{headerTitle}</span>
+          <span className="mt-0.5 block truncate text-[10px] uppercase tracking-wider text-ink-dim">
             {project.aspect} ·{" "}
             {project.kind === "photo"
               ? "Photo"
@@ -1204,7 +1217,7 @@ export function EditorScreen({
         </button>
         <button
           onClick={() => setSearchOpen(true)}
-          className="grid h-9 w-9 place-items-center rounded-full text-ink"
+          className="grid h-10 w-10 place-items-center rounded-full text-ink-dim transition hover:text-ink"
           aria-label="Search tools"
         >
           <Search className="h-4 w-4" />
@@ -1212,7 +1225,7 @@ export function EditorScreen({
         <div className="relative">
           <button
             onClick={() => setMenuOpen((value) => !value)}
-            className="grid h-9 w-9 place-items-center rounded-full bg-surface-2 text-ink"
+            className="grid h-10 w-10 place-items-center rounded-full bg-surface-2 text-ink"
             aria-label="Project menu"
             aria-expanded={menuOpen}
           >
@@ -1226,7 +1239,7 @@ export function EditorScreen({
                 aria-label="Close menu"
               />
               <div
-                className="absolute right-0 top-10 z-30 min-w-[170px] overflow-hidden rounded-2xl bg-surface-2 shadow-xl ring-1 ring-white/10"
+                className="absolute right-0 top-11 z-30 min-w-[180px] overflow-hidden rounded-2xl bg-surface-2 shadow-xl ring-1 ring-white/10"
                 role="menu"
               >
                 {[
@@ -1259,7 +1272,7 @@ export function EditorScreen({
         </div>
         <button
           onClick={() => setPanel("export")}
-          className="rounded-full bg-brand px-3.5 py-1.5 text-xs font-semibold text-sky-ink"
+          className="rounded-full bg-brand px-4 py-2 text-[13px] font-semibold text-sky-ink active:scale-95"
         >
           Export
         </button>
@@ -1268,12 +1281,12 @@ export function EditorScreen({
       {/* Preview */}
       <div
         ref={previewHostRef}
-        className="relative flex min-h-[130px] flex-1 items-center justify-center px-3"
+        className="relative flex min-h-[140px] flex-1 items-center justify-center px-4 py-1"
       >
         {previewBox.width > 0 && (
           <div
             ref={previewRef}
-            className="relative overflow-hidden rounded-xl shadow-2xl ring-1 ring-white/5"
+            className="relative overflow-hidden rounded-2xl shadow-2xl ring-1 ring-white/5"
             style={{
               width: previewBox.width,
               height: previewBox.height,
@@ -1389,10 +1402,10 @@ export function EditorScreen({
       </div>
 
       {/* Playback bar */}
-      <div className="mx-3 mt-1.5 flex items-center justify-between rounded-2xl bg-surface px-3 py-1.5">
+      <div className="mx-4 mt-2 flex items-center justify-between rounded-2xl bg-surface px-3 py-2">
         <button
           onClick={undo}
-          className="grid h-8 w-8 place-items-center rounded-full text-ink-dim disabled:opacity-30"
+          className="grid h-9 w-9 place-items-center rounded-full text-ink-dim disabled:opacity-30"
           aria-label="Undo"
           disabled={undoRef.current.length === 0}
           key={`undo-${historyTick}`}
@@ -1401,7 +1414,7 @@ export function EditorScreen({
         </button>
         <button
           onClick={togglePlay}
-          className="grid h-9 w-9 place-items-center rounded-full bg-ink text-phone"
+          className="grid h-10 w-10 place-items-center rounded-full bg-ink text-phone active:scale-95"
           aria-label={playing ? "Pause" : "Play"}
         >
           {playing ? (
@@ -1410,12 +1423,12 @@ export function EditorScreen({
             <Play className="h-4 w-4 translate-x-[1px] fill-current" />
           )}
         </button>
-        <div className="tabular-nums text-[10px] text-ink-dim">
+        <div className="tabular-nums text-[11px] text-ink-dim">
           <span className="text-ink">{formatClock(currentTime)}</span> / {formatTime(duration)}
         </div>
         <button
           onClick={redo}
-          className="grid h-8 w-8 place-items-center rounded-full text-ink-dim disabled:opacity-30"
+          className="grid h-9 w-9 place-items-center rounded-full text-ink-dim disabled:opacity-30"
           aria-label="Redo"
           disabled={redoRef.current.length === 0}
           key={`redo-${historyTick}`}
@@ -1426,32 +1439,32 @@ export function EditorScreen({
 
       {/* Timeline — hidden while a tool panel is open so the panel never clips. */}
       {panel === null && (
-        <div className="mt-1.5 shrink-0">
-          <div className="mb-1 flex items-center justify-between px-4">
-            <span className="flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-ink-dim">
+        <div className="mt-3 shrink-0">
+          <div className="mb-2 flex items-center justify-between px-5">
+            <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-dim">
               Timeline
-              <span className="rounded bg-surface px-1.5 py-0.5 text-[8px] font-normal normal-case tracking-normal">
+              <span className="rounded bg-surface px-1.5 py-0.5 text-[9px] font-normal normal-case tracking-normal">
                 {clips.length} clip{clips.length === 1 ? "" : "s"}
               </span>
             </span>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <button
                 onClick={() => setUploadOpen(true)}
-                className="grid h-6 w-6 place-items-center rounded-full bg-surface-2"
+                className="grid h-7 w-7 place-items-center rounded-full bg-surface-2"
                 aria-label="Add media"
               >
                 <Plus className="h-3.5 w-3.5" />
               </button>
               <button
                 onClick={() => setPxPerSec((value) => clamp(value - 10, 16, 140))}
-                className="grid h-6 w-6 place-items-center rounded-full bg-surface-2"
+                className="grid h-7 w-7 place-items-center rounded-full bg-surface-2"
                 aria-label="Zoom out"
               >
                 <ZoomOut className="h-3 w-3" />
               </button>
               <button
                 onClick={() => setPxPerSec((value) => clamp(value + 10, 16, 140))}
-                className="grid h-6 w-6 place-items-center rounded-full bg-surface-2"
+                className="grid h-7 w-7 place-items-center rounded-full bg-surface-2"
                 aria-label="Zoom in"
               >
                 <ZoomIn className="h-3 w-3" />
@@ -1462,7 +1475,7 @@ export function EditorScreen({
                     setSelectedClipId(null);
                     setPanel(null);
                   }}
-                  className="ml-1 grid h-6 w-6 place-items-center rounded-full bg-surface-2"
+                  className="ml-0.5 grid h-7 w-7 place-items-center rounded-full bg-surface-2"
                   aria-label="Clear clip selection"
                 >
                   <ChevronLeft className="h-3 w-3 rotate-90" />
@@ -1473,12 +1486,12 @@ export function EditorScreen({
 
           <div
             ref={scrollRef}
-            className="overflow-x-auto overscroll-x-contain pb-1 [scrollbar-width:none]"
+            className="overflow-x-auto overscroll-x-contain pb-2 [scrollbar-width:none]"
           >
-            <div className="relative pl-3 pr-3" style={{ width: Math.max(totalWidth + 24, 280) }}>
+            <div className="relative pl-4 pr-4" style={{ width: Math.max(totalWidth + 32, 288) }}>
               {/* ruler */}
               <div
-                className="relative h-4 cursor-ew-resize touch-none select-none"
+                className="relative h-5 cursor-ew-resize touch-none select-none"
                 onPointerDown={(event) => {
                   event.currentTarget.setPointerCapture(event.pointerId);
                   seekFromEvent(event);
@@ -1490,17 +1503,17 @@ export function EditorScreen({
                 {ticks.map((time) => (
                   <span
                     key={time}
-                    className="absolute top-0 text-[8px] tabular-nums text-ink-dim"
+                    className="absolute top-0 text-[9px] tabular-nums text-ink-dim"
                     style={{ left: time * pxPerSec }}
                   >
                     {time === 0 ? "0s" : formatTime(time)}
-                    <span className="absolute left-0 top-3 h-1.5 w-px bg-ink/25" />
+                    <span className="absolute left-0 top-3.5 h-1.5 w-px bg-ink/25" />
                   </span>
                 ))}
               </div>
 
               {/* visual track */}
-              <div className="relative mt-1 h-[52px] rounded-lg bg-surface/60">
+              <div className="relative mt-1.5 h-[58px] rounded-xl bg-surface/60">
                 {clips.length === 0 && (
                   <button
                     onClick={() => setUploadOpen(true)}
@@ -1548,7 +1561,7 @@ export function EditorScreen({
                           )}
                         </div>
                       )}
-                      <span className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/80 to-transparent px-1 pb-0.5 pt-3 text-[8px] text-white">
+                      <span className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/80 to-transparent px-1.5 pb-1 pt-3 text-[9px] text-white">
                         {asset?.name ?? "Clip"}
                       </span>
                       {clip.animation && (
@@ -1614,7 +1627,7 @@ export function EditorScreen({
                       setPanel("audio");
                       setSelectedClipId(null);
                     }}
-                    className="relative mt-1 flex h-7 w-full items-center overflow-hidden rounded-md bg-surface/80 text-left"
+                    className="relative mt-1.5 flex h-8 w-full items-center overflow-hidden rounded-lg bg-surface/80 text-left"
                     aria-label={`Audio track ${asset?.name ?? ""}`}
                   >
                     {asset?.thumb && (
@@ -1624,7 +1637,7 @@ export function EditorScreen({
                         className="absolute inset-0 h-full w-full object-cover opacity-25"
                       />
                     )}
-                    <span className="relative flex min-w-0 items-center gap-1 px-2 text-[8px] text-ink">
+                    <span className="relative flex min-w-0 items-center gap-1.5 px-2.5 text-[9px] text-ink">
                       <Music className="h-3 w-3 text-brand" />
                       <span className="truncate">{asset?.name ?? "Audio track"}</span>
                     </span>
@@ -1646,7 +1659,7 @@ export function EditorScreen({
               {audioTracks.length > 2 && (
                 <button
                   onClick={() => setPanel("audio")}
-                  className="mt-1 w-full rounded-md bg-surface/60 py-1 text-[8px] text-ink-dim"
+                  className="mt-1.5 w-full rounded-lg bg-surface/60 py-1.5 text-[9px] text-ink-dim"
                 >
                   +{audioTracks.length - 2} more audio tracks — open Audio
                 </button>
@@ -1658,28 +1671,28 @@ export function EditorScreen({
 
       {/* Bottom tools */}
       <div
-        className="mt-1 shrink-0 border-t border-ink/5 bg-phone/95 backdrop-blur"
-        style={{ paddingBottom: "max(0.6rem, env(safe-area-inset-bottom))" }}
+        className="mt-2 shrink-0 border-t border-white/5 bg-phone"
+        style={{ paddingBottom: "max(0.85rem, env(safe-area-inset-bottom))" }}
       >
         {panel !== null ? (
-          <div className="max-h-[40dvh] overflow-y-auto overscroll-contain px-4 pb-2 pt-2 [scrollbar-width:none]">
-            <div className="mb-2 flex items-center gap-2">
+          <div className="max-h-[44dvh] overflow-y-auto overscroll-contain px-5 pb-2 pt-3 [scrollbar-width:none]">
+            <div className="mb-3 flex items-center gap-2.5">
               <button
                 onClick={() => setPanel(null)}
-                className="grid h-7 w-7 place-items-center rounded-full bg-surface-2"
+                className="grid h-8 w-8 place-items-center rounded-full bg-surface-2"
                 aria-label="Back to tools"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
-              <span className="flex-1 text-xs font-semibold">{PANEL_TITLE[panel]}</span>
+              <span className="flex-1 text-[13px] font-semibold">{PANEL_TITLE[panel]}</span>
               {targetClip && (
-                <span className="max-w-[35%] truncate text-[9px] text-ink-dim">
+                <span className="max-w-[35%] truncate text-[10px] text-ink-dim">
                   {targetAsset?.name}
                 </span>
               )}
               <button
                 onClick={() => setSearchOpen(true)}
-                className="grid h-7 w-7 place-items-center rounded-full bg-surface-2"
+                className="grid h-8 w-8 place-items-center rounded-full bg-surface-2"
                 aria-label="Search tools"
               >
                 <Search className="h-3.5 w-3.5" />
@@ -1695,10 +1708,10 @@ export function EditorScreen({
             />
           </div>
         ) : showClipTools ? (
-          <div className="pt-2">
-            <div className="mb-1.5 flex items-center gap-2 px-4">
-              <span className="text-[10px] font-semibold">Clip tools</span>
-              <span className="min-w-0 flex-1 truncate text-[9px] text-ink-dim">
+          <div className="pt-3">
+            <div className="mb-2 flex items-center gap-2 px-5">
+              <span className="text-[11px] font-semibold">Clip tools</span>
+              <span className="min-w-0 flex-1 truncate text-[10px] text-ink-dim">
                 {selectedClip && targetAsset
                   ? `${targetAsset.name} · ${formatTime(selectedClip.duration)}`
                   : ""}
@@ -1711,7 +1724,7 @@ export function EditorScreen({
                 <ChevronLeft className="h-4 w-4 rotate-90" />
               </button>
             </div>
-            <div className="flex gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
+            <div className="flex gap-2 overflow-x-auto px-5 pb-2 [scrollbar-width:none]">
               {CLIP_TOOL_IDS.map((id) => {
                 const tool = clipTool(id);
                 const Icon = tool.icon;
@@ -1719,19 +1732,19 @@ export function EditorScreen({
                   <button
                     key={id}
                     onClick={() => runTool(tool)}
-                    className={`flex shrink-0 flex-col items-center gap-1.5 rounded-xl px-3 py-2 transition active:scale-95 ${
+                    className={`flex min-w-[60px] shrink-0 flex-col items-center gap-2 rounded-2xl px-3 py-2.5 transition active:scale-95 ${
                       tool.command === "deleteClip" ? "text-red-400" : "text-ink"
                     } bg-surface-2/70`}
                   >
-                    <Icon className="h-4 w-4" strokeWidth={1.6} />
-                    <span className="whitespace-nowrap text-[9px]">{tool.label}</span>
+                    <Icon className="h-5 w-5" strokeWidth={1.6} />
+                    <span className="whitespace-nowrap text-[10px]">{tool.label}</span>
                   </button>
                 );
               })}
             </div>
           </div>
         ) : (
-          <div className="flex gap-3 overflow-x-auto px-4 pb-1 pt-2 [scrollbar-width:none]">
+          <div className="flex gap-2 overflow-x-auto px-5 pb-2 pt-3 [scrollbar-width:none]">
             {MAIN_TOOL_IDS.map((id) => {
               const tool = clipTool(id);
               const Icon = tool.icon;
@@ -1739,10 +1752,10 @@ export function EditorScreen({
                 <button
                   key={id}
                   onClick={() => runTool(tool)}
-                  className="flex shrink-0 flex-col items-center gap-1.5 rounded-xl px-3 py-2 text-ink transition active:scale-95 hover:bg-surface-2/60"
+                  className="flex min-w-[60px] shrink-0 flex-col items-center gap-2 rounded-2xl px-3 py-2.5 text-ink transition active:scale-95 hover:bg-surface-2/60"
                 >
-                  <Icon className="h-4 w-4" strokeWidth={1.6} />
-                  <span className="whitespace-nowrap text-[9px]">{tool.label}</span>
+                  <Icon className="h-5 w-5" strokeWidth={1.6} />
+                  <span className="whitespace-nowrap text-[10px]">{tool.label}</span>
                 </button>
               );
             })}
@@ -1751,10 +1764,10 @@ export function EditorScreen({
                 setPanel("more");
                 setSelectedClipId(null);
               }}
-              className="flex shrink-0 flex-col items-center gap-1.5 rounded-xl px-3 py-2 text-ink-dim transition active:scale-95 hover:bg-surface-2/60"
+              className="flex min-w-[60px] shrink-0 flex-col items-center gap-2 rounded-2xl px-3 py-2.5 text-ink-dim transition active:scale-95 hover:bg-surface-2/60"
             >
-              <Plus className="h-4 w-4" />
-              <span className="whitespace-nowrap text-[9px]">All tools</span>
+              <LayoutGrid className="h-5 w-5" strokeWidth={1.6} />
+              <span className="whitespace-nowrap text-[10px]">All tools</span>
             </button>
           </div>
         )}
@@ -1842,17 +1855,17 @@ export function EditorScreen({
 function EditorTopBar({ onBack }: { onBack: () => void }) {
   return (
     <div
-      className="flex items-center gap-2 px-4 pb-2"
-      style={{ paddingTop: "max(0.6rem, calc(env(safe-area-inset-top) + 0.35rem))" }}
+      className="flex items-center gap-1.5 px-5 pb-3"
+      style={{ paddingTop: "max(0.85rem, calc(env(safe-area-inset-top) + 0.5rem))" }}
     >
       <button
         onClick={onBack}
-        className="grid h-9 w-9 place-items-center rounded-full"
+        className="-ml-2 grid h-10 w-10 place-items-center rounded-full"
         aria-label="Back"
       >
         <ArrowLeft className="h-5 w-5" />
       </button>
-      <span className="text-xs font-medium">EDIT+</span>
+      <span className="text-sm font-semibold tracking-wide">EDIT+</span>
     </div>
   );
 }

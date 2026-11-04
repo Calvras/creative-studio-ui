@@ -17,10 +17,11 @@ import {
   X,
   Loader2,
   Trash2,
+  LayoutGrid,
 } from "lucide-react";
 import { BottomNav } from "@/components/bottom-nav";
 import { UploadSheet } from "@/components/upload-sheet";
-import { ToolSearch } from "@/components/tool-search";
+import { ToolsHub } from "@/components/tools-hub";
 import { EditGlyph } from "@/components/icons";
 import { BottomSheet, ConfirmDialog, Toast } from "@/components/ui/overlays";
 import {
@@ -39,7 +40,7 @@ const MAIN_TILES = [
   { id: "ai", label: "AI Lab", icon: Wand2 },
   { id: "photo", label: "Photo editor", icon: ImageIcon },
   { id: "video", label: "Video editor", icon: Film },
-  { id: "more", label: "More tools", icon: MoreHorizontal },
+  { id: "more", label: "All tools", icon: LayoutGrid },
 ] as const;
 
 const MENU_ACTIONS = ["Rename", "Duplicate", "Export", "Delete"] as const;
@@ -171,7 +172,7 @@ export function HomeScreen() {
         className="flex-1 overflow-y-auto px-5 [scrollbar-width:none]"
         style={{
           paddingTop: "max(1rem, calc(env(safe-area-inset-top) + 0.5rem))",
-          paddingBottom: "calc(6.75rem + env(safe-area-inset-bottom))",
+          paddingBottom: "calc(7.5rem + env(safe-area-inset-bottom))",
         }}
       >
         <header className="flex items-center justify-between gap-3">
@@ -213,7 +214,7 @@ export function HomeScreen() {
           </div>
         )}
 
-        <div className="mt-5 grid grid-cols-4 gap-2.5">
+        <div className="mt-5 grid grid-cols-4 gap-3">
           {MAIN_TILES.map((tile) => (
             <button
               key={tile.id}
@@ -226,7 +227,7 @@ export function HomeScreen() {
               className="flex flex-col items-center gap-2"
               aria-label={tile.label}
             >
-              <span className="grid aspect-square w-full place-items-center rounded-2xl bg-surface transition active:scale-95 hover:bg-surface-2">
+              <span className="grid aspect-square w-full place-items-center rounded-3xl bg-surface ring-1 ring-white/5 transition active:scale-95 hover:bg-surface-2">
                 <tile.icon className="h-6 w-6" strokeWidth={1.5} />
               </span>
               <span className="text-[10px] text-ink">{tile.label}</span>
@@ -373,12 +374,12 @@ export function HomeScreen() {
         onClose={() => setUploadOpen(false)}
         onFiles={createFromFiles}
       />
-      <ToolSearch
+      <ToolsHub
         open={toolsOpen}
         onClose={() => setToolsOpen(false)}
         onPick={handleToolPick}
         hasClip={false}
-        hint="Pick a tool, then add media to use it."
+        hint="Pick a tool, then add media to use it. Every tool works on this device."
       />
 
       <RenameDialog

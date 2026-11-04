@@ -628,7 +628,7 @@ function EffectsPanel({
                 style={{
                   backgroundImage: thumb
                     ? `linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,.55)),url(${thumb})`
-                    : "linear-gradient(135deg,#3a2a20,#141414)",
+                    : "linear-gradient(135deg,#3a2a20,#212121)",
                   backgroundSize: "cover",
                   backgroundPosition: "center",
                   filter,
@@ -684,7 +684,7 @@ function FiltersPanel({
               style={{
                 backgroundImage: thumb
                   ? `url(${thumb})`
-                  : "linear-gradient(135deg,#3a2a20,#141414)",
+                  : "linear-gradient(135deg,#3a2a20,#212121)",
                 backgroundSize: "cover",
                 backgroundPosition: "center",
                 filter: filter.css || undefined,

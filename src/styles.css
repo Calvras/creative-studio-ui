@@ -140,7 +140,7 @@
   html,
   body {
     height: 100%;
-    background-color: oklch(0.08 0 0);
+    background-color: oklch(0.2476 0 0);
     color: var(--color-foreground);
     overscroll-behavior: none;
     -webkit-tap-highlight-color: transparent;
@@ -278,12 +278,13 @@
 
 :root {
   --stage: oklch(0.9 0 0);
-  --phone: oklch(0.08 0 0);
+  /* App background sampled from the reference: #212121 */
+  --phone: oklch(0.2476 0 0);
   --phone-frame: oklch(0.68 0.16 50);
-  --surface: oklch(0.17 0 0);
-  --surface-2: oklch(0.23 0 0);
+  --surface: oklch(0.3 0 0);
+  --surface-2: oklch(0.365 0 0);
   --ink: oklch(0.97 0 0);
-  --ink-dim: oklch(0.62 0 0);
+  --ink-dim: oklch(0.72 0 0);
   --brand: oklch(0.68 0.19 45);
   --brand-dark: oklch(0.38 0.1 45);
   --sky: oklch(0.88 0.04 220);

@@ -231,9 +231,12 @@ async function imageMeta(
   const url = URL.createObjectURL(file);
   try {
     const image = new Image();
-    image.decoding = "async";
+    const loaded = new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve();
+      image.onerror = () => reject(new Error("Image could not be decoded"));
+    });
     image.src = url;
-    await image.decode();
+    await loaded;
     const width = image.naturalWidth || 1;
     const height = image.naturalHeight || 1;
     const thumb = drawToDataUrl(360, 360, (ctx) => {
