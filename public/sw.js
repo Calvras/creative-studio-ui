@@ -1,10 +1,11 @@
-const CACHE = "editplus-v3";
+const CACHE = "editplus-v4";
 const SHELL = [
   "/",
   "/manifest.json",
-  "/icon-192.png",
-  "/icon-512.png",
-  "/icon-maskable-512.png",
+  "/icons/v2/icon-192.png",
+  "/icons/v2/icon-512.png",
+  "/icons/v2/icon-maskable-512.png",
+  "/icons/v2/apple-touch-icon-180.png",
   "/apple-touch-icon.png",
   "/favicon-32.png",
 ];

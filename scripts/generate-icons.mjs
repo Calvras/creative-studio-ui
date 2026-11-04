@@ -1,10 +1,12 @@
 // Generates the opaque home-screen / PWA icon set from the existing EDIT+ mark.
 // iOS rejects apple-touch-icons that contain an alpha channel, so every file
 // produced here is 8-bit RGB (no transparency).
-import { readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { deflateSync, inflateSync } from "node:zlib";
 
 const OUT = new URL("../public/", import.meta.url);
+const ICONS = new URL("icons/v2/", OUT);
+mkdirSync(ICONS, { recursive: true });
 const SRC = readFileSync(new URL("./source-icon.png", import.meta.url));
 
 function decodePng(buf) {
@@ -237,31 +239,42 @@ function downscale(width, height, srcRgb, size) {
   return out;
 }
 
+// Icons live under a versioned path: iOS caches apple-touch icons by URL and
+// keeps serving a stale (e.g. transparent) icon at the old path forever.
 const MASTER = 1024;
 const master = makeMaster(MASTER, 0.6);
-writeFileSync(new URL("icon-1024.png", OUT), encodePng(MASTER, MASTER, master));
-console.log("wrote icon-1024.png");
+writeFileSync(new URL("icon-1024.png", ICONS), encodePng(MASTER, MASTER, master));
+console.log("wrote icons/v2/icon-1024.png");
 
 const sizes = {
   "icon-512.png": 512,
   "icon-192.png": 192,
-  "apple-touch-icon.png": 180,
-  "apple-touch-icon-180x180.png": 180,
-  "apple-touch-icon-167x167.png": 167,
-  "apple-touch-icon-152x152.png": 152,
-  "apple-touch-icon-120x120.png": 120,
-  "favicon-32.png": 32,
+  "apple-touch-icon-180.png": 180,
+  "apple-touch-icon-167.png": 167,
+  "apple-touch-icon-152.png": 152,
+  "apple-touch-icon-120.png": 120,
 };
 for (const [name, size] of Object.entries(sizes)) {
   const rgb = size === MASTER ? master : downscale(MASTER, MASTER, master, size);
-  writeFileSync(new URL(name, OUT), encodePng(size, size, rgb));
-  console.log("wrote", name);
+  writeFileSync(new URL(name, ICONS), encodePng(size, size, rgb));
+  console.log("wrote icons/v2/" + name);
 }
 
 // Maskable variant keeps the mark inside the 80% safe circle.
 const maskMaster = makeMaster(512, 0.44);
-writeFileSync(new URL("icon-maskable-512.png", OUT), encodePng(512, 512, maskMaster));
-console.log("wrote icon-maskable-512.png");
+writeFileSync(new URL("icon-maskable-512.png", ICONS), encodePng(512, 512, maskMaster));
+console.log("wrote icons/v2/icon-maskable-512.png");
+
+// Fallback paths Safari probes when a page exposes no icon links.
+for (const name of ["apple-touch-icon.png", "apple-touch-icon-precomposed.png"]) {
+  writeFileSync(new URL(name, OUT), encodePng(180, 180, downscale(MASTER, MASTER, master, 180)));
+  console.log("wrote", name);
+}
+writeFileSync(
+  new URL("favicon-32.png", OUT),
+  encodePng(32, 32, downscale(MASTER, MASTER, master, 32)),
+);
+console.log("wrote favicon-32.png");
 
 // Opaque favicon.ico (single 256x256 PNG entry is accepted by browsers).
 const icoPng = encodePng(256, 256, downscale(MASTER, MASTER, master, 256));
