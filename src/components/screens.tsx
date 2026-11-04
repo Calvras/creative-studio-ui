@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { BottomNav } from "@/components/bottom-nav";
 import { useState, useRef, useEffect, useCallback } from "react";
 import {
@@ -18,6 +18,8 @@ import {
   // Clip tools (shown when clip selected)
   GaugeCircle, BarChart2, Crop, Copy, RefreshCw, PictureInPicture2,
   SlidersHorizontal, Filter, BotIcon, Eye, BluetoothOff, Volume2, Repeat, Minus,
+  // Upload sheet
+  Eraser,
 } from "lucide-react";
 import car from "@/assets/car.jpg";
 import {
@@ -136,6 +138,86 @@ function MoreOptionsSheet({ open, onClose }: { open: boolean; onClose: () => voi
             </button>
           ))}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Upload Sheet ─────────────────────────────────────────────────────────────
+
+export interface UploadSheetProps {
+  open: boolean;
+  onClose: () => void;
+  onFileSelected: (url: string, type: string, name: string) => void;
+}
+
+export function UploadSheet({ open, onClose, onFileSelected }: UploadSheetProps) {
+  const videoRef = useRef<HTMLInputElement>(null);
+  const photoRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [open, onClose]);
+
+  function handleFile(e: React.ChangeEvent<HTMLInputElement>, mediaType: string) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    const name = file.name.replace(/\.[^.]+$/, ""); // strip extension
+    onFileSelected(url, mediaType, name);
+    // reset input so same file can be re-selected
+    e.target.value = "";
+    onClose();
+  }
+
+  if (!open) return null;
+
+  return (
+    <div className="absolute inset-0 z-50 flex flex-col justify-end" aria-modal="true" role="dialog">
+      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+      <div className="relative z-10 rounded-t-3xl bg-surface pb-10 pt-5 px-5">
+        <div className="mb-5 flex items-center justify-between">
+          <h2 className="font-display text-base">New project</h2>
+          <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-full bg-surface-2" aria-label="Close">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <button
+            onClick={() => videoRef.current?.click()}
+            className="flex flex-col items-center gap-3 rounded-2xl bg-surface-2 px-4 py-6 transition active:scale-95 hover:bg-surface"
+          >
+            <Film className="h-8 w-8 text-brand" strokeWidth={1.5} />
+            <span className="text-sm font-medium">Video</span>
+            <span className="text-[10px] text-ink-dim">MP4, MOV, AVI…</span>
+          </button>
+          <button
+            onClick={() => photoRef.current?.click()}
+            className="flex flex-col items-center gap-3 rounded-2xl bg-surface-2 px-4 py-6 transition active:scale-95 hover:bg-surface"
+          >
+            <ImageIcon className="h-8 w-8 text-brand" strokeWidth={1.5} />
+            <span className="text-sm font-medium">Photo</span>
+            <span className="text-[10px] text-ink-dim">JPG, PNG, WEBP…</span>
+          </button>
+        </div>
+        {/* Hidden file inputs */}
+        <input
+          ref={videoRef}
+          type="file"
+          accept="video/*"
+          className="hidden"
+          onChange={(e) => handleFile(e, "video")}
+        />
+        <input
+          ref={photoRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => handleFile(e, "image")}
+        />
       </div>
     </div>
   );
@@ -312,9 +394,10 @@ function AnimatePanel({ state, onChange }: {
 
 // ─── Effects Panel ────────────────────────────────────────────────────────────
 
-function EffectsPanel({ state, onChange }: {
+function EffectsPanel({ state, onChange, mediaUrl }: {
   state: Pick<EditorState, "brightness" | "contrast" | "saturation" | "opacity" | "activeEffect" | "activeFilter">;
   onChange: (partial: Partial<EditorState>) => void;
+  mediaUrl: string;
 }) {
   const [tab, setTab] = useState<"adjust" | "filters" | "retouch" | "ai">("adjust");
 
@@ -363,7 +446,7 @@ function EffectsPanel({ state, onChange }: {
               className={`flex shrink-0 flex-col items-center gap-1.5 transition active:scale-95`}>
               <div className={`h-14 w-14 rounded-xl border-2 ${state.activeFilter === f ? "border-brand" : "border-transparent"}`}
                 style={{
-                  backgroundImage: `url(${car})`,
+                  backgroundImage: `url(${mediaUrl})`,
                   backgroundSize: "cover",
                   filter: f === "BW" ? "grayscale(1)" : f === "Warm" ? "sepia(0.4)" : f === "Cool" ? "hue-rotate(180deg)" : f === "Vivid" ? "saturate(2)" : f === "Matte" ? "contrast(0.8) brightness(1.1)" : f === "Fade" ? "opacity(0.7)" : f === "Drama" ? "contrast(1.4) brightness(0.9)" : f === "Chrome" ? "contrast(1.2) saturate(1.5)" : f === "Noir" ? "grayscale(1) contrast(1.5)" : "none",
                 }} />
@@ -462,7 +545,9 @@ const MAIN_TOOLS = [
 // ─── HomeScreen ───────────────────────────────────────────────────────────────
 
 export function HomeScreen() {
+  const navigate = useNavigate();
   const [moreOpen, setMoreOpen] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
   const [projects, setProjects] = useState(PROJECTS);
   const [toast, setToast] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<Project | null>(null);
@@ -494,11 +579,36 @@ export function HomeScreen() {
     setRenaming(null);
   }
 
+  function handleFileSelected(url: string, type: string, name: string) {
+    // Format today as "DD Mon YY"
+    const now = new Date();
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const day = String(now.getDate()).padStart(2, "0");
+    const mon = months[now.getMonth()];
+    const yr = String(now.getFullYear()).slice(2);
+    const dateStr = `${day} ${mon} ${yr}`;
+
+    const newProject: Project = {
+      id: Date.now().toString(),
+      img: url,
+      title: name,
+      sub: "New project",
+      date: dateStr,
+      dur: "00:00:00",
+      size: "—",
+    };
+    setProjects((prev) => [newProject, ...prev]);
+    navigate({ to: "/editor", search: { mediaUrl: url, mediaType: type } });
+  }
+
   return (
     <div className="relative flex h-dvh w-full flex-col overflow-hidden bg-phone text-ink">
       <div className="flex-1 overflow-y-auto px-5 pt-4 pb-24 [scrollbar-width:none]">
         <div className="flex items-center justify-between">
-          <h1 className="font-display text-xl">EDIT+</h1>
+          <div className="flex items-center gap-2">
+            <img src="/logo.jpg" alt="EDIT+" className="h-8 w-8 rounded-lg object-cover" />
+            <h1 className="font-display text-xl">EDIT+</h1>
+          </div>
           <Link to="/premium" className="flex items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1.5 text-xs font-medium">
             <Star className="h-3.5 w-3.5 fill-ink" /> Get premium
           </Link>
@@ -520,7 +630,11 @@ export function HomeScreen() {
             <p className="mt-1 text-xs"><b>Trial version</b> <span className="opacity-70">2 projects left</span></p>
             <span className="mt-3 inline-block rounded-full bg-brand px-4 py-1.5 text-xs font-medium">Version 3.0</span>
           </div>
-          <button className="grid h-20 w-20 place-items-center rounded-full border-2 border-dashed border-sky-ink/60" aria-label="Create new project">
+          <button
+            onClick={() => setUploadOpen(true)}
+            className="grid h-20 w-20 place-items-center rounded-full border-2 border-dashed border-sky-ink/60 transition active:scale-95"
+            aria-label="Create new project"
+          >
             <span className="grid h-6 w-6 place-items-center rounded-full bg-sky-ink text-sky"><Plus className="h-4 w-4" /></span>
           </button>
         </div>
@@ -552,6 +666,11 @@ export function HomeScreen() {
       </div>
       <BottomNav />
       <MoreOptionsSheet open={moreOpen} onClose={() => setMoreOpen(false)} />
+      <UploadSheet
+        open={uploadOpen}
+        onClose={() => setUploadOpen(false)}
+        onFileSelected={handleFileSelected}
+      />
       {renaming && <RenameModal initialValue={renaming.title} onConfirm={confirmRename} onCancel={() => setRenaming(null)} />}
       {toast && <Toast message={toast} onDone={() => setToast(null)} />}
     </div>
@@ -571,14 +690,20 @@ const EDITOR_BOTTOM_TOOLS = [
 
 const EDITOR_MENU_ITEMS = ["Save draft", "Export settings", "Share", "Delete"] as const;
 
-export function EditorScreen() {
-  const [playing, setPlaying]         = useState(false);
-  const [activeTool, setActiveTool]   = useState<ActiveTool>(null);
-  const [menuOpen, setMenuOpen]       = useState(false);
-  const [toast, setToast]             = useState<string | null>(null);
+export function EditorScreen({ mediaUrl: mediaUrlProp, mediaType: mediaTypeProp }: {
+  mediaUrl?: string;
+  mediaType?: string;
+}) {
+  const mediaUrl = mediaUrlProp || car;
+  const mediaType = mediaTypeProp || "image";
+
+  const [playing, setPlaying]           = useState(false);
+  const [activeTool, setActiveTool]     = useState<ActiveTool>(null);
+  const [menuOpen, setMenuOpen]         = useState(false);
+  const [toast, setToast]               = useState<string | null>(null);
   const [selectedClip, setSelectedClip] = useState<number | null>(null);
-  const [editorState, setEditorState] = useState<EditorState>(INITIAL_STATE);
-  const [currentTime, setCurrentTime] = useState(4); // seconds
+  const [editorState, setEditorState]   = useState<EditorState>(INITIAL_STATE);
+  const [currentTime, setCurrentTime]   = useState(4); // seconds
   const menuRef = useRef<HTMLDivElement>(null);
 
   const totalDuration = 39;
@@ -633,6 +758,8 @@ export function EditorScreen() {
 
   function handleToolClick(label: string) {
     if (label === "Split") { handleSplit(); return; }
+    // Close clip tools when opening a main panel
+    setSelectedClip(null);
     setActiveTool((prev) => (prev === label ? null : label as ActiveTool));
   }
 
@@ -687,10 +814,18 @@ export function EditorScreen() {
     20 + Math.abs(Math.sin(i * 1.7) * 60 + Math.cos(i * 0.6) * 20)
   );
 
-  const panelOpen = activeTool !== null;
+  // When a clip is selected, close the main panel and show clip tools
+  const showClipTools = selectedClip !== null;
+  const panelOpen = activeTool !== null && !showClipTools;
 
   return (
-    <div className="relative flex h-dvh w-full flex-col overflow-hidden bg-phone text-ink">
+    <div
+      className="relative flex h-dvh w-full flex-col overflow-hidden bg-phone text-ink"
+      onClick={(e) => {
+        // clicking the backdrop (not a child tool area) dismisses clip selection
+        if (e.currentTarget === e.target) setSelectedClip(null);
+      }}
+    >
 
       {/* ── Top bar ── */}
       <div className="mt-3 flex items-center gap-3 px-4">
@@ -719,9 +854,26 @@ export function EditorScreen() {
       {/* ── Preview ── */}
       <div className="relative mx-auto mt-3 w-[78%] max-w-md">
         <div style={{ opacity: editorState.opacity / 100 }} className="overflow-hidden rounded-lg">
-          <img src={car} alt="Preview" width={768} height={896}
-            style={{ filter: previewFilter, transform: previewTransform }}
-            className="aspect-[4/5] w-full object-cover transition-all duration-200" />
+          {mediaType === "video" ? (
+            <video
+              src={mediaUrl}
+              autoPlay
+              muted
+              loop
+              playsInline
+              style={{ filter: previewFilter, transform: previewTransform }}
+              className="aspect-[4/5] w-full object-cover transition-all duration-200"
+            />
+          ) : (
+            <img
+              src={mediaUrl}
+              alt="Preview"
+              width={768}
+              height={896}
+              style={{ filter: previewFilter, transform: previewTransform }}
+              className="aspect-[4/5] w-full object-cover transition-all duration-200"
+            />
+          )}
         </div>
         {/* Text overlay */}
         {editorState.textOverlay && (
@@ -784,10 +936,15 @@ export function EditorScreen() {
               const width = nextPct - clip.startPct;
               return (
                 <button key={clip.id}
-                  onClick={(e) => { e.stopPropagation(); setSelectedClip(selectedClip === clip.id ? null : clip.id); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Select clip and close main panel
+                    setActiveTool(null);
+                    setSelectedClip(selectedClip === clip.id ? null : clip.id);
+                  }}
                   className={`relative h-full overflow-hidden border-2 transition ${selectedClip === clip.id ? "border-brand" : "border-transparent"}`}
                   style={{ width: `${width}%` }}>
-                  <img src={car} alt="" className="h-full w-full object-cover" />
+                  <img src={mediaUrl} alt="" className="h-full w-full object-cover" />
                 </button>
               );
             })}
@@ -808,25 +965,8 @@ export function EditorScreen() {
       {/* ── Bottom tool area ── */}
       <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col bg-phone/95 backdrop-blur">
 
-        {/* Active panel — slides up */}
-        {panelOpen && (
-          <div className="border-t border-surface-2 py-3">
-            <div className="mb-2 flex items-center gap-2 px-5">
-              <button onClick={() => setActiveTool(null)} className="text-ink-dim" aria-label="Close panel">
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <span className="text-xs font-semibold text-ink">{activeTool}</span>
-            </div>
-            {activeTool === "Audio"   && <AudioPanel volume={editorState.volume} onChange={(v) => update({ volume: v })} />}
-            {activeTool === "Text"    && <TextPanel state={editorState} onChange={update} />}
-            {activeTool === "Animate" && <AnimatePanel state={editorState} onChange={update} />}
-            {activeTool === "Effects" && <EffectsPanel state={editorState} onChange={update} />}
-            {activeTool === "Stickers" && <StickersPanel active={editorState.activeSticker} onSelect={(s) => update({ activeSticker: editorState.activeSticker === s ? null : s })} />}
-          </div>
-        )}
-
-        {/* Clip tools — shown when a clip is selected */}
-        {selectedClip !== null && !panelOpen && (
+        {/* Clip tools — shown when a clip is selected (takes priority over main panel) */}
+        {showClipTools && (
           <div className="border-t border-surface-2 py-3">
             <div className="mb-2 flex items-center gap-2 px-5">
               <button onClick={() => setSelectedClip(null)} className="text-ink-dim" aria-label="Close clip tools">
@@ -838,10 +978,27 @@ export function EditorScreen() {
           </div>
         )}
 
+        {/* Active panel — shown when no clip is selected */}
+        {panelOpen && (
+          <div className="border-t border-surface-2 py-3">
+            <div className="mb-2 flex items-center gap-2 px-5">
+              <button onClick={() => setActiveTool(null)} className="text-ink-dim" aria-label="Close panel">
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <span className="text-xs font-semibold text-ink">{activeTool}</span>
+            </div>
+            {activeTool === "Audio"   && <AudioPanel volume={editorState.volume} onChange={(v) => update({ volume: v })} />}
+            {activeTool === "Text"    && <TextPanel state={editorState} onChange={update} />}
+            {activeTool === "Animate" && <AnimatePanel state={editorState} onChange={update} />}
+            {activeTool === "Effects" && <EffectsPanel state={editorState} onChange={update} mediaUrl={mediaUrl} />}
+            {activeTool === "Stickers" && <StickersPanel active={editorState.activeSticker} onSelect={(s) => update({ activeSticker: editorState.activeSticker === s ? null : s })} />}
+          </div>
+        )}
+
         {/* Main tool row */}
         <div className="flex justify-around px-2 pb-6 pt-3 border-t border-surface-2">
           {EDITOR_BOTTOM_TOOLS.map((t) => {
-            const isActive = activeTool === t.label;
+            const isActive = activeTool === t.label && !showClipTools;
             return (
               <button key={t.label} onClick={() => handleToolClick(t.label)}
                 aria-pressed={isActive}
