@@ -1,23 +1,41 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Layers, Sparkles, Folder, User } from "lucide-react";
+import { Sparkles, Folder, User, type LucideIcon } from "lucide-react";
+import { EditGlyph } from "@/components/icons";
 
-const items = [
-  { to: "/", icon: Layers, label: "Edit" },
-  { to: "/ai-lab", icon: Sparkles, label: "AI Lab" },
-  { to: "/projects", icon: Folder, label: "Projects" },
-  { to: "/me", icon: User, label: "Me" },
-] as const;
+type NavItem = { to: string; label: string; icon?: LucideIcon; custom?: boolean };
+
+const items: NavItem[] = [
+  { to: "/", label: "Edit", custom: true },
+  { to: "/ai-lab", label: "AI Lab", icon: Sparkles },
+  { to: "/projects", label: "Projects", icon: Folder },
+  { to: "/me", label: "Me", icon: User },
+];
 
 export function BottomNav() {
   const path = useRouterState({ select: (r) => r.location.pathname });
   return (
-    <nav className="absolute inset-x-0 bottom-0 z-20 flex justify-around border-t border-surface-2 bg-phone/95 pb-5 pt-3 backdrop-blur">
-      {items.map((it) => {
-        const active = path === it.to;
+    <nav
+      className="absolute inset-x-0 bottom-0 z-30 flex justify-around border-t border-ink/5 bg-phone/92 pt-2.5 backdrop-blur-xl"
+      style={{ paddingBottom: "max(0.7rem, env(safe-area-inset-bottom))" }}
+      aria-label="Main navigation"
+    >
+      {items.map((item) => {
+        const active = path === item.to;
         return (
-          <Link key={it.to} to={it.to} className={`flex flex-col items-center gap-1 ${active ? "text-ink" : "text-ink-dim"}`}>
-            <it.icon className="h-5 w-5" fill={active ? "currentColor" : "none"} />
-            <span className="text-[10px]">{it.label}</span>
+          <Link
+            key={item.to}
+            to={item.to}
+            className={`flex min-w-14 flex-col items-center gap-1 rounded-xl px-3 py-1 ${
+              active ? "text-ink" : "text-ink-dim"
+            }`}
+            aria-current={active ? "page" : undefined}
+          >
+            {item.custom ? (
+              <EditGlyph className="h-5 w-5" active={active} />
+            ) : item.icon ? (
+              <item.icon className="h-5 w-5" fill={active ? "currentColor" : "none"} />
+            ) : null}
+            <span className="text-[10px] leading-none">{item.label}</span>
           </Link>
         );
       })}
@@ -28,7 +46,15 @@ export function BottomNav() {
 export function Screen({ children }: { children: React.ReactNode }) {
   return (
     <div className="relative flex h-dvh w-full flex-col overflow-hidden bg-phone text-ink">
-      <div className="flex-1 overflow-y-auto px-5 pt-4 pb-28 [scrollbar-width:none]">{children}</div>
+      <div
+        className="flex-1 overflow-y-auto px-5 [scrollbar-width:none]"
+        style={{
+          paddingTop: "max(1.25rem, calc(env(safe-area-inset-top) + 0.5rem))",
+          paddingBottom: "calc(6.75rem + env(safe-area-inset-bottom))",
+        }}
+      >
+        {children}
+      </div>
       <BottomNav />
     </div>
   );

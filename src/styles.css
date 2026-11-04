@@ -137,10 +137,143 @@
     border-color: var(--color-border);
   }
 
-  html, body {
+  html,
+  body {
+    height: 100%;
     background-color: oklch(0.08 0 0);
     color: var(--color-foreground);
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
   }
+
+  body {
+    margin: 0;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* Bottom sheets keep their actions above the iOS home indicator. */
+.sheet-bottom {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+/* Brand range slider used by the adjustment panels. */
+.range-brand {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+}
+.range-brand::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--surface-2);
+}
+.range-brand::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--surface-2);
+}
+.range-brand::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  margin-top: -6px;
+  height: 16px;
+  width: 16px;
+  border-radius: 999px;
+  background: var(--brand);
+  box-shadow: 0 0 0 3px oklch(0.68 0.19 45 / 0.18);
+}
+.range-brand::-moz-range-thumb {
+  height: 16px;
+  width: 16px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--brand);
+}
+
+@keyframes clip-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes clip-slide {
+  from {
+    opacity: 0;
+    transform: translateX(6%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes clip-zoom {
+  from {
+    opacity: 0;
+    transform: scale(1.12);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes clip-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.03);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes clip-spin {
+  from {
+    opacity: 0;
+    transform: rotate(-8deg) scale(1.06);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(0) scale(1);
+  }
+}
+
+.clip-anim-fade {
+  animation: clip-fade 520ms ease-out both;
+}
+.clip-anim-slide {
+  animation: clip-slide 560ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.clip-anim-zoom {
+  animation: clip-zoom 560ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.clip-anim-pop {
+  animation: clip-pop 520ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+.clip-anim-spin {
+  animation: clip-spin 600ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
 :root {
@@ -171,4 +304,6 @@
   --font-display: "Archivo Black", sans-serif;
   --font-sans: "Inter Tight", system-ui, sans-serif;
 }
-body { font-family: var(--font-sans); }
+body {
+  font-family: var(--font-sans);
+}

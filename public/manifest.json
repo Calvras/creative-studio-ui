@@ -1,37 +1,16 @@
 {
+  "id": "/",
   "name": "EDIT+",
   "short_name": "EDIT+",
-  "description": "Professional photo and video editor",
+  "description": "A fast photo, video and document editor for your phone.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait",
   "background_color": "#141414",
   "theme_color": "#141414",
   "icons": [
-    {
-      "src": "/apple-touch-icon-120x120.png",
-      "sizes": "120x120",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/apple-touch-icon-152x152.png",
-      "sizes": "152x152",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/apple-touch-icon-167x167.png",
-      "sizes": "167x167",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/apple-touch-icon.png",
-      "sizes": "180x180",
-      "type": "image/png",
-      "purpose": "any"
-    },
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
@@ -43,8 +22,13 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
-  "categories": ["photo", "video", "productivity"],
-  "screenshots": []
+  "categories": ["photo", "video", "productivity"]
 }
