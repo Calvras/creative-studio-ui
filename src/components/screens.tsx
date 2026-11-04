@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { BottomNav } from "@/components/bottom-nav";
 import { useState } from "react";
 import {
   Star, Wand2, ImageIcon, Film, MoreHorizontal, Plus, Calendar, Clock, HardDrive,
@@ -26,15 +27,14 @@ const projects = [
 ];
 
 export function HomeScreen() {
-  const [tab, setTab] = useState(0);
   return (
     <div className="flex relative h-dvh w-full bg-phone text-ink overflow-hidden flex-col">
       <div className="flex-1 overflow-y-auto px-5 pb-24 [scrollbar-width:none]">
         <div className="mt-5 flex items-center justify-between">
           <h1 className="font-display text-xl">EDIT+</h1>
-          <button className="flex items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1.5 text-xs font-medium">
+          <Link to="/premium" className="flex items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1.5 text-xs font-medium">
             <Star className="h-3.5 w-3.5 fill-ink" /> Get premium
-          </button>
+          </Link>
         </div>
         <div className="mt-5 grid grid-cols-4 gap-3">
           {tools.map((t) => (
@@ -58,7 +58,7 @@ export function HomeScreen() {
         </div>
         <div className="mt-6 flex items-center justify-between">
           <h2 className="font-display text-lg">PROJECTS</h2>
-          <button className="rounded-full border border-ink/70 px-3 py-1 text-xs">Settings</button>
+          <Link to="/settings" className="rounded-full border border-ink/70 px-3 py-1 text-xs">Settings</Link>
         </div>
         <div className="mt-3 space-y-2">
           {projects.map((p) => (
@@ -80,13 +80,7 @@ export function HomeScreen() {
           ))}
         </div>
       </div>
-      <nav className="absolute inset-x-0 bottom-0 flex justify-around bg-phone/95 pb-6 pt-4">
-        {[Layers, PlaySquare, Folder, User].map((I, i) => (
-          <button key={i} onClick={() => setTab(i)} className={i === tab ? "text-ink" : "text-ink-dim"}>
-            <I className="h-5 w-5" fill={i === tab ? "currentColor" : "none"} />
-          </button>
-        ))}
-      </nav>
+      <BottomNav />
     </div>
   );
 }
