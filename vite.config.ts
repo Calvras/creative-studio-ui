@@ -12,4 +12,9 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  nitro: {
+    // Use node-server preset so the build produces a standard Node.js HTTP server
+    // (required for Render and other Node hosting — cloudflare-module exits immediately on Node)
+    preset: "node-server",
+  },
 });
