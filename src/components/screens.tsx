@@ -29,8 +29,8 @@ const projects = [
 export function HomeScreen() {
   return (
     <div className="flex relative h-dvh w-full bg-phone text-ink overflow-hidden flex-col">
-      <div className="flex-1 overflow-y-auto px-5 pb-24 [scrollbar-width:none]">
-        <div className="mt-5 flex items-center justify-between">
+      <div className="flex-1 overflow-y-auto px-5 pt-4 pb-24 [scrollbar-width:none]">
+        <div className="flex items-center justify-between">
           <h1 className="font-display text-xl">EDIT+</h1>
           <Link to="/premium" className="flex items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1.5 text-xs font-medium">
             <Star className="h-3.5 w-3.5 fill-ink" /> Get premium

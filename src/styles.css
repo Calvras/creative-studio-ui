@@ -137,8 +137,8 @@
     border-color: var(--color-border);
   }
 
-  body {
-    background-color: var(--color-background);
+  html, body {
+    background-color: oklch(0.08 0 0);
     color: var(--color-foreground);
   }
 }

@@ -21,7 +21,7 @@ const actions = [
 function AiLab() {
   return (
     <Screen>
-      <div className="mt-5 flex justify-end">
+      <div className="flex justify-end">
         <span className="relative grid h-10 w-10 place-items-center rounded-full bg-surface-2">
           <History className="h-5 w-5" />
           <span className="absolute right-0 top-0 h-2.5 w-2.5 rounded-full bg-brand" />

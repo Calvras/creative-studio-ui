@@ -28,7 +28,7 @@ export function BottomNav() {
 export function Screen({ children }: { children: React.ReactNode }) {
   return (
     <div className="relative flex h-dvh w-full flex-col overflow-hidden bg-phone text-ink">
-      <div className="flex-1 overflow-y-auto px-5 pb-28 [scrollbar-width:none]">{children}</div>
+      <div className="flex-1 overflow-y-auto px-5 pt-4 pb-28 [scrollbar-width:none]">{children}</div>
       <BottomNav />
     </div>
   );
