@@ -10,7 +10,7 @@ import { formatBytes } from "@/lib/format";
 import { ASPECTS, type AspectId } from "@/lib/types";
 
 export const Route = createFileRoute("/settings")({
-  head: () => meta("Settings — EDIT+", "Account name, default canvas, storage and app data."),
+  head: () => meta("Settings — Edro", "Account name, default canvas, storage and app data."),
   component: SettingsPage,
 });
 
@@ -183,7 +183,7 @@ function SettingsPage() {
           to="/premium"
           className="flex items-center justify-between px-4 py-3.5 text-sm transition hover:bg-surface-2"
         >
-          <span>EDIT+ Ultra</span>
+          <span>Edro Ultra</span>
           <ChevronRight className="h-4 w-4 text-ink-dim" />
         </Link>
         <div className="flex items-center justify-between px-4 py-3.5 text-sm">

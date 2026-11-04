@@ -7,7 +7,7 @@ import { startTrial, trialDaysLeft, useSettings } from "@/lib/settings";
 
 export const Route = createFileRoute("/premium")({
   head: () =>
-    meta("EDIT+ Ultra — Trial", "Unlock every local editing tool with a 7-day creator trial."),
+    meta("Edro Ultra — Trial", "Unlock every local editing tool with a 7-day creator trial."),
   component: Premium,
 });
 
@@ -39,7 +39,7 @@ function Premium() {
         >
           <X className="h-4 w-4" />
         </Link>
-        <h1 className="font-display text-lg">EDIT+ ULTRA</h1>
+        <h1 className="font-display text-lg">EDRO ULTRA</h1>
       </div>
 
       <div
@@ -55,7 +55,7 @@ function Premium() {
           NO WATERMARK
         </h2>
         <p className="mt-3 max-w-[36ch] text-sm leading-relaxed text-ink-dim">
-          EDIT+ runs entirely on your device. The trial unlocks the full toolset for 7 days — there
+          Edro runs entirely on your device. The trial unlocks the full toolset for 7 days — there
           is no payment step, no card and no upload.
         </p>
 

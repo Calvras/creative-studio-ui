@@ -1,11 +1,11 @@
-// Generates the opaque home-screen / PWA icon set from the existing EDIT+ mark.
+// Generates the opaque home-screen / PWA icon set from the Edro mark.
 // iOS rejects apple-touch-icons that contain an alpha channel, so every file
 // produced here is 8-bit RGB (no transparency).
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { deflateSync, inflateSync } from "node:zlib";
 
 const OUT = new URL("../public/", import.meta.url);
-const ICONS = new URL("icons/v2/", OUT);
+const ICONS = new URL("icons/v3/", OUT);
 mkdirSync(ICONS, { recursive: true });
 const SRC = readFileSync(new URL("./source-icon.png", import.meta.url));
 
@@ -155,48 +155,26 @@ function alphaAt(sx, sy) {
   return Math.max(0, Math.min(1, top * (1 - fy) + bot * fy));
 }
 
-// Opaque editorial-dark backdrop with a warm brand glow behind the mark.
+// Opaque #212121 backdrop — matches the app canvas and the supplied Edro mark.
 function makeMaster(size, markScale) {
   const rgb = Buffer.alloc(size * size * 3);
   const markSize = Math.round(size * markScale);
   const scale = markSize / Math.max(markW, markH);
   const dx = (size - markW * scale) / 2;
   const dy = (size - markH * scale) / 2;
-  const cx = size * 0.5,
-    cy = size * 0.47;
 
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
-      const u = x / size,
-        v = y / size;
-      // base vertical graphite gradient
-      let r = 12 + v * 8;
-      let g = 12 + v * 7;
-      let b = 14 + v * 8;
-      // warm halo
-      const d = Math.hypot((x - cx) / size, (y - cy) / size);
-      const halo = Math.max(0, 1 - d / 0.52);
-      const glow = halo * halo * 0.55;
-      r += glow * 190;
-      g += glow * 82;
-      b += glow * 26;
-      // subtle vignette
-      const edge = Math.hypot(u - 0.5, v - 0.5);
-      const vig = Math.max(0, (edge - 0.34) / 0.42) * 26;
-      r = Math.max(0, r - vig);
-      g = Math.max(0, g - vig);
-      b = Math.max(0, b - vig);
-
       let sx = (x - dx) / scale + minX;
       let sy = (y - dy) / scale + minY;
       let a = 0;
       if (sx >= minX - 1 && sy >= minY - 1 && sx <= maxX + 1 && sy <= maxY + 1) {
         a = alphaAt(sx, sy);
       }
-      // white mark over the backdrop
-      r = r * (1 - a) + 255 * a;
-      g = g * (1 - a) + 255 * a;
-      b = b * (1 - a) + 255 * a;
+      // white mark over #212121
+      const r = 33 * (1 - a) + 255 * a;
+      const g = 33 * (1 - a) + 255 * a;
+      const b = 33 * (1 - a) + 255 * a;
 
       const i = (y * size + x) * 3;
       rgb[i] = Math.round(r);
@@ -242,9 +220,9 @@ function downscale(width, height, srcRgb, size) {
 // Icons live under a versioned path: iOS caches apple-touch icons by URL and
 // keeps serving a stale (e.g. transparent) icon at the old path forever.
 const MASTER = 1024;
-const master = makeMaster(MASTER, 0.6);
+const master = makeMaster(MASTER, 0.62);
 writeFileSync(new URL("icon-1024.png", ICONS), encodePng(MASTER, MASTER, master));
-console.log("wrote icons/v2/icon-1024.png");
+console.log("wrote icons/v3/icon-1024.png");
 
 const sizes = {
   "icon-512.png": 512,
@@ -257,13 +235,13 @@ const sizes = {
 for (const [name, size] of Object.entries(sizes)) {
   const rgb = size === MASTER ? master : downscale(MASTER, MASTER, master, size);
   writeFileSync(new URL(name, ICONS), encodePng(size, size, rgb));
-  console.log("wrote icons/v2/" + name);
+  console.log("wrote icons/v3/" + name);
 }
 
 // Maskable variant keeps the mark inside the 80% safe circle.
 const maskMaster = makeMaster(512, 0.44);
 writeFileSync(new URL("icon-maskable-512.png", ICONS), encodePng(512, 512, maskMaster));
-console.log("wrote icons/v2/icon-maskable-512.png");
+console.log("wrote icons/v3/icon-maskable-512.png");
 
 // Fallback paths Safari probes when a page exposes no icon links.
 for (const name of ["apple-touch-icon.png", "apple-touch-icon-precomposed.png"]) {

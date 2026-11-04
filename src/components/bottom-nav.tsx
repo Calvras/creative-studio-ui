@@ -16,7 +16,7 @@ export function BottomNav() {
   return (
     <nav
       className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex justify-center px-4"
-      style={{ paddingBottom: "max(0.9rem, env(safe-area-inset-bottom))" }}
+      style={{ paddingBottom: "max(0.35rem, env(safe-area-inset-bottom))" }}
       aria-label="Main navigation"
     >
       <div className="pointer-events-auto flex items-center gap-0.5 rounded-[28px] border border-white/10 bg-surface/80 p-1.5 shadow-[0_16px_40px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
@@ -52,7 +52,7 @@ export function Screen({ children }: { children: React.ReactNode }) {
         className="flex-1 overflow-y-auto px-5 [scrollbar-width:none]"
         style={{
           paddingTop: "max(1.25rem, calc(env(safe-area-inset-top) + 0.5rem))",
-          paddingBottom: "calc(7.5rem + env(safe-area-inset-bottom))",
+          paddingBottom: "calc(7rem + env(safe-area-inset-bottom))",
         }}
       >
         {children}

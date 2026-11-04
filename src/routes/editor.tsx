@@ -15,12 +15,12 @@ export const Route = createFileRoute("/editor")({
   }),
   head: () => ({
     meta: [
-      { title: "Editor — EDIT+" },
+      { title: "Editor — Edro" },
       {
         name: "description",
         content: "Edit your video timeline with split, audio, text and effects.",
       },
-      { property: "og:title", content: "Editor — EDIT+" },
+      { property: "og:title", content: "Editor — Edro" },
       { property: "og:description", content: "Video timeline editor." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

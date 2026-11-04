@@ -1,15 +1,17 @@
-import { useState, type ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import type { AudioTrack, MediaAsset, Overlay, Project, VisualClip } from "@/lib/types";
 import type { PanelId } from "@/lib/tool-registry";
 import { EDITOR_TOOLS } from "@/lib/tool-registry";
 import {
   ANIMATIONS,
+  ANIMATION_CATEGORIES,
   BACKGROUNDS,
   EFFECT_PRESETS,
   FILTERS,
   STICKER_GROUPS,
   TEXT_COLORS,
   filterById,
+  type AnimationCategory,
 } from "@/lib/effects";
 import { formatTime } from "@/lib/format";
 import {
@@ -18,6 +20,7 @@ import {
   AlignRight,
   ArrowDownToLine,
   AudioLines,
+  Ban,
   Bold,
   Check,
   Download,
@@ -34,7 +37,6 @@ import {
   Trash2,
   Volume2,
   VolumeX,
-  X,
 } from "lucide-react";
 
 export interface EditorPanelActions {
@@ -88,7 +90,7 @@ export function EditorPanel({
         <StickersPanel project={project} selectedOverlayId={selectedOverlayId} actions={actions} />
       );
     case "animate":
-      return <AnimatePanel clip={clip} actions={actions} />;
+      return <AnimatePanel clip={clip} clipAsset={clipAsset} actions={actions} />;
     case "effects":
       return <EffectsPanel clip={clip} clipAsset={clipAsset} actions={actions} />;
     case "filters":
@@ -122,13 +124,13 @@ function PanelEmpty({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center px-4 py-6 text-center">
-      <span className="grid h-11 w-11 place-items-center rounded-2xl bg-surface text-ink-dim">
+    <div className="flex flex-col items-center px-4 py-8 text-center">
+      <span className="grid h-14 w-14 place-items-center rounded-2xl bg-surface text-ink-dim">
         {icon}
       </span>
-      <p className="mt-3 text-sm font-medium">{title}</p>
-      <p className="mt-1 max-w-[30ch] text-[11px] leading-relaxed text-ink-dim">{description}</p>
-      {action && <div className="mt-4">{action}</div>}
+      <p className="mt-3.5 text-[15px] font-semibold">{title}</p>
+      <p className="mt-1.5 max-w-[28ch] text-xs leading-relaxed text-ink-dim">{description}</p>
+      {action && <div className="mt-5">{action}</div>}
     </div>
   );
 }
@@ -151,8 +153,8 @@ function SliderRow({
   onChange: (value: number) => void;
 }) {
   return (
-    <label className="block px-1">
-      <span className="flex items-center justify-between text-[11px]">
+    <label className="block px-1 py-1">
+      <span className="flex items-center justify-between text-xs">
         <span className="text-ink-dim">{label}</span>
         <span className="tabular-nums text-ink">
           {Number.isInteger(value) ? value : value.toFixed(2)}
@@ -166,7 +168,7 @@ function SliderRow({
         step={step}
         value={value}
         onChange={(event) => onChange(Number(event.target.value))}
-        className="range-brand mt-1.5 h-6 w-full cursor-pointer"
+        className="range-brand mt-2 h-6 w-full cursor-pointer"
       />
     </label>
   );
@@ -184,7 +186,7 @@ function Chip({
   return (
     <button
       onClick={onClick}
-      className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs transition active:scale-95 ${
+      className={`shrink-0 rounded-full px-4 py-2 text-xs transition active:scale-95 ${
         active ? "bg-brand text-sky-ink" : "bg-surface-2 text-ink"
       }`}
     >
@@ -194,7 +196,7 @@ function Chip({
 }
 
 function PanelNote({ children }: { children: ReactNode }) {
-  return <p className="px-1 pt-1 text-[10px] leading-relaxed text-ink-dim">{children}</p>;
+  return <p className="px-1 pt-3 text-[10.5px] leading-relaxed text-ink-dim">{children}</p>;
 }
 
 function assetThumb(asset: MediaAsset | null): string | undefined {
@@ -217,9 +219,9 @@ function AudioPanel({
   const canControlClip =
     clip !== null && (clipAsset?.kind === "video" || clipAsset?.kind === "audio");
   return (
-    <div className="space-y-4 pb-1">
+    <div className="space-y-5 pb-1">
       {canControlClip && clip ? (
-        <div className="rounded-2xl bg-surface-2/60 p-3">
+        <div className="rounded-2xl bg-surface-2/60 p-4">
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-2 text-xs font-medium">
               <Volume2 className="h-4 w-4 text-brand" /> Clip volume
@@ -280,7 +282,7 @@ function AudioPanel({
             {project.audioTracks.map((track) => {
               const asset = project.media.find((item) => item.id === track.assetId);
               return (
-                <div key={track.id} className="rounded-2xl bg-surface-2/60 p-3">
+                <div key={track.id} className="rounded-2xl bg-surface-2/60 p-4">
                   <div className="flex items-center gap-2">
                     <Music className="h-4 w-4 shrink-0 text-brand" />
                     <div className="min-w-0 flex-1">
@@ -382,7 +384,7 @@ function TextPanel({
           }
         />
       ) : (
-        <div className="space-y-3 rounded-2xl bg-surface-2/60 p-3">
+        <div className="space-y-3.5 rounded-2xl bg-surface-2/60 p-4">
           <textarea
             value={selected.content}
             onChange={(event) =>
@@ -517,12 +519,12 @@ function StickersPanel({
           <p className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-dim">
             {group.label}
           </p>
-          <div className="grid grid-cols-7 gap-1.5">
+          <div className="grid grid-cols-7 gap-2">
             {group.items.map((emoji) => (
               <button
                 key={emoji}
                 onClick={() => actions.onAddSticker(emoji)}
-                className="grid aspect-square place-items-center rounded-xl bg-surface-2 text-xl transition active:scale-90 hover:bg-surface"
+                className="grid aspect-square place-items-center rounded-xl bg-surface-2 text-xl transition active:scale-90 active:bg-surface"
                 aria-label={`Add ${emoji}`}
               >
                 {emoji}
@@ -540,7 +542,16 @@ function StickersPanel({
 
 /// ── Animate ──────────────────────────────────────────────────────────────────
 
-function AnimatePanel({ clip, actions }: { clip: VisualClip | null; actions: EditorPanelActions }) {
+function AnimatePanel({
+  clip,
+  clipAsset,
+  actions,
+}: {
+  clip: VisualClip | null;
+  clipAsset: MediaAsset | null;
+  actions: EditorPanelActions;
+}) {
+  const [category, setCategory] = useState<AnimationCategory>("Basic");
   if (!clip) {
     return (
       <PanelEmpty
@@ -550,34 +561,97 @@ function AnimatePanel({ clip, actions }: { clip: VisualClip | null; actions: Edi
       />
     );
   }
+  const thumb = clipAsset?.thumb;
+  const previewStyle: CSSProperties = {
+    backgroundImage: thumb ? `url(${thumb})` : "linear-gradient(140deg,#3d3d3d,#1b1b1b)",
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+  };
+  const list = ANIMATIONS.filter((animation) => animation.category === category);
+  const activeLabel = ANIMATIONS.find((animation) => animation.id === clip.animation)?.label;
+
   return (
-    <div className="space-y-3 pb-1">
-      <div className="flex gap-2 overflow-x-auto [scrollbar-width:none]">
-        <Chip
-          active={clip.animation === null}
+    <div className="pb-1">
+      <div className="mb-4 flex items-center gap-6 border-b border-white/[0.07] px-1">
+        {ANIMATION_CATEGORIES.map((item) => {
+          const isActive = category === item;
+          return (
+            <button
+              key={item}
+              onClick={() => setCategory(item)}
+              className={`relative pb-2.5 text-[13px] transition ${isActive ? "font-semibold text-ink" : "text-ink-dim"}`}
+            >
+              {item}
+              <span
+                className={`absolute inset-x-0 -bottom-px h-[2px] rounded-full ${isActive ? "bg-brand" : "bg-transparent"}`}
+              />
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="grid grid-cols-4 gap-x-2.5 gap-y-4">
+        <button
           onClick={() => actions.onPatchClip({ animation: null })}
+          className="flex flex-col items-center gap-1.5"
         >
-          None
-        </Chip>
-        {ANIMATIONS.map((animation) => (
-          <Chip
-            key={animation.id}
-            active={clip.animation === animation.id}
-            onClick={() =>
-              actions.onPatchClip({
-                animation: clip.animation === animation.id ? null : animation.id,
-              })
-            }
+          <span
+            className={`flex aspect-square w-full items-center justify-center rounded-lg border bg-surface transition ${
+              clip.animation === null ? "border-brand" : "border-white/10"
+            }`}
           >
-            {animation.label}
-          </Chip>
-        ))}
+            <Ban className="h-[26px] w-[26px] text-ink-dim" strokeWidth={1.3} />
+          </span>
+          <span
+            className={`text-[10px] ${clip.animation === null ? "text-brand" : "text-ink-dim"}`}
+          >
+            None
+          </span>
+        </button>
+
+        {list.map((animation) => {
+          const isActive = clip.animation === animation.id;
+          return (
+            <button
+              key={animation.id}
+              onClick={() =>
+                actions.onPatchClip({
+                  animation: isActive ? null : animation.id,
+                })
+              }
+              className="flex flex-col items-center gap-1.5"
+            >
+              <span
+                className={`relative aspect-square w-full overflow-hidden rounded-lg bg-surface-2 transition ${
+                  isActive ? "ring-2 ring-brand" : "ring-1 ring-white/5"
+                }`}
+              >
+                <span
+                  key={`${category}-${animation.id}-${isActive}`}
+                  className={`absolute inset-0 ${animation.className}`}
+                  style={previewStyle}
+                />
+                {isActive && (
+                  <span className="absolute right-1.5 top-1.5 grid h-5 w-5 place-items-center rounded-full bg-brand text-sky-ink">
+                    <Check className="h-3 w-3" strokeWidth={3} />
+                  </span>
+                )}
+              </span>
+              <span
+                className={`max-w-full truncate text-[10px] ${isActive ? "text-brand" : "text-ink-dim"}`}
+              >
+                {animation.label}
+              </span>
+            </button>
+          );
+        })}
       </div>
-      <div className="rounded-2xl bg-surface-2/60 p-3 text-[11px] leading-relaxed text-ink-dim">
-        {clip.animation
-          ? `“${ANIMATIONS.find((item) => item.id === clip.animation)?.label}” plays when this clip starts. Move the playhead to the clip to preview it.`
+
+      <PanelNote>
+        {activeLabel
+          ? `“${activeLabel}” plays once as this clip starts. Scrub the playhead to the clip to replay it.`
           : "Pick an entrance animation. The preview plays it when the clip begins."}
-      </div>
+      </PanelNote>
     </div>
   );
 }
@@ -604,7 +678,7 @@ function EffectsPanel({
   }
   return (
     <div className="space-y-3 pb-1">
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-3">
         {EFFECT_PRESETS.map((preset) => {
           const isActive =
             clip.filter === preset.filter &&
@@ -621,10 +695,10 @@ function EffectsPanel({
                   adjust: { ...clip.adjust, ...preset.adjust },
                 })
               }
-              className={`overflow-hidden rounded-2xl text-left transition active:scale-[0.98] ${isActive ? "ring-2 ring-brand" : "ring-1 ring-white/5"}`}
+              className={`overflow-hidden rounded-xl text-left transition active:scale-[0.98] ${isActive ? "ring-2 ring-brand" : "ring-1 ring-white/5"}`}
             >
               <div
-                className="flex h-16 items-end justify-between p-2"
+                className="flex h-24 items-end justify-between p-2.5"
                 style={{
                   backgroundImage: thumb
                     ? `linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,.55)),url(${thumb})`
@@ -636,9 +710,9 @@ function EffectsPanel({
               >
                 {isActive && <Check className="h-4 w-4 text-white drop-shadow" />}
               </div>
-              <div className="bg-surface-2 px-2.5 py-2">
+              <div className="bg-surface-2 px-3 py-2.5">
                 <p className="text-xs font-medium">{preset.label}</p>
-                <p className="truncate text-[9px] text-ink-dim">{preset.note}</p>
+                <p className="mt-0.5 truncate text-[10px] text-ink-dim">{preset.note}</p>
               </div>
             </button>
           );
@@ -672,15 +746,15 @@ function FiltersPanel({
   const thumb = assetThumb(clipAsset);
   return (
     <div className="space-y-2 pb-1">
-      <div className="flex gap-2.5 overflow-x-auto pb-1 [scrollbar-width:none]">
+      <div className="flex gap-3 overflow-x-auto pb-1 [scrollbar-width:none]">
         {FILTERS.map((filter) => (
           <button
             key={filter.id}
             onClick={() => actions.onPatchClip({ filter: filter.id })}
-            className="flex w-[64px] shrink-0 flex-col items-center gap-1.5"
+            className="flex w-[72px] shrink-0 flex-col items-center gap-2"
           >
             <span
-              className={`h-16 w-16 overflow-hidden rounded-xl border-2 ${clip.filter === filter.id ? "border-brand" : "border-transparent"}`}
+              className={`h-[72px] w-[72px] overflow-hidden rounded-lg border-2 ${clip.filter === filter.id ? "border-brand" : "border-transparent"}`}
               style={{
                 backgroundImage: thumb
                   ? `url(${thumb})`
@@ -691,7 +765,7 @@ function FiltersPanel({
               }}
             />
             <span
-              className={`text-[9px] ${clip.filter === filter.id ? "text-brand" : "text-ink-dim"}`}
+              className={`text-[10px] ${clip.filter === filter.id ? "text-brand" : "text-ink-dim"}`}
             >
               {filter.label}
             </span>
@@ -780,29 +854,29 @@ function CropPanel({ clip, actions }: { clip: VisualClip | null; actions: Editor
     );
   }
   return (
-    <div className="space-y-3 pb-1">
-      <div className="grid grid-cols-4 gap-2">
+    <div className="space-y-4 pb-1">
+      <div className="grid grid-cols-4 gap-2.5">
         <button
           onClick={() => actions.onPatchClip({ rotation: (clip.rotation + 270) % 360 })}
-          className="flex flex-col items-center gap-1 rounded-xl bg-surface-2 py-3 text-[10px]"
+          className="flex flex-col items-center gap-1.5 rounded-xl bg-surface-2 py-4 text-[10px]"
         >
           <RotateCcw className="h-4 w-4" /> Left
         </button>
         <button
           onClick={() => actions.onPatchClip({ rotation: (clip.rotation + 90) % 360 })}
-          className="flex flex-col items-center gap-1 rounded-xl bg-surface-2 py-3 text-[10px]"
+          className="flex flex-col items-center gap-1.5 rounded-xl bg-surface-2 py-4 text-[10px]"
         >
           <RotateCw className="h-4 w-4" /> Right
         </button>
         <button
           onClick={() => actions.onPatchClip({ flipH: !clip.flipH })}
-          className={`flex flex-col items-center gap-1 rounded-xl py-3 text-[10px] ${clip.flipH ? "bg-brand text-sky-ink" : "bg-surface-2"}`}
+          className={`flex flex-col items-center gap-1.5 rounded-xl py-4 text-[10px] ${clip.flipH ? "bg-brand text-sky-ink" : "bg-surface-2"}`}
         >
           <FlipHorizontal className="h-4 w-4" /> Flip H
         </button>
         <button
           onClick={() => actions.onPatchClip({ flipV: !clip.flipV })}
-          className={`flex flex-col items-center gap-1 rounded-xl py-3 text-[10px] ${clip.flipV ? "bg-brand text-sky-ink" : "bg-surface-2"}`}
+          className={`flex flex-col items-center gap-1.5 rounded-xl py-4 text-[10px] ${clip.flipV ? "bg-brand text-sky-ink" : "bg-surface-2"}`}
         >
           <FlipVertical className="h-4 w-4" /> Flip V
         </button>
@@ -898,15 +972,15 @@ function CanvasPanel({ project, actions }: { project: Project; actions: EditorPa
     { id: "16:9", label: "16:9", hint: "Wide", w: 16, h: 9 },
   ] as const;
   return (
-    <div className="space-y-4 pb-1">
+    <div className="space-y-5 pb-1">
       <div>
-        <p className="mb-2 px-1 text-[11px] font-semibold text-ink">Aspect ratio</p>
-        <div className="grid grid-cols-3 gap-2">
+        <p className="mb-2.5 px-1 text-xs font-semibold text-ink">Aspect ratio</p>
+        <div className="grid grid-cols-3 gap-2.5">
           {aspects.map((aspect) => (
             <button
               key={aspect.id}
               onClick={() => actions.onPatchProject({ aspect: aspect.id })}
-              className={`flex flex-col items-center gap-1.5 rounded-xl py-3 text-[10px] transition ${project.aspect === aspect.id ? "bg-brand text-sky-ink" : "bg-surface-2 text-ink"}`}
+              className={`flex flex-col items-center gap-1.5 rounded-xl py-3.5 text-[10px] transition ${project.aspect === aspect.id ? "bg-brand text-sky-ink" : "bg-surface-2 text-ink"}`}
             >
               <span
                 className="rounded-[3px] border border-current opacity-80"
@@ -1107,17 +1181,17 @@ function Row({ label, value }: { label: string; value: string }) {
 
 function MorePanel({ actions }: { actions: EditorPanelActions }) {
   return (
-    <div className="grid grid-cols-3 gap-2 pb-1">
+    <div className="grid grid-cols-3 gap-2.5 pb-1">
       {EDITOR_TOOLS.map((tool) => {
         const Icon = tool.icon;
         return (
           <button
             key={tool.id}
             onClick={() => actions.onOpenTool(tool.id)}
-            className="flex min-h-[74px] flex-col items-center justify-center gap-1.5 rounded-2xl bg-surface-2 px-1.5 py-2.5 text-center transition active:scale-95 hover:bg-surface"
+            className="flex min-h-[86px] flex-col items-center justify-center gap-2 rounded-2xl bg-surface-2/70 px-2 py-3 text-center transition active:scale-95 active:bg-surface"
           >
-            <Icon className="h-4 w-4 text-ink" strokeWidth={1.6} />
-            <span className="text-[9px] leading-tight text-ink">{tool.label}</span>
+            <Icon className="h-5 w-5 text-ink" strokeWidth={1.6} />
+            <span className="text-[10px] leading-tight text-ink-dim">{tool.label}</span>
           </button>
         );
       })}

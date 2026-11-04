@@ -1,12 +1,13 @@
-const CACHE = "editplus-v4";
+const CACHE = "edro-v1";
 const SHELL = [
   "/",
   "/manifest.json",
-  "/icons/v2/icon-192.png",
-  "/icons/v2/icon-512.png",
-  "/icons/v2/icon-maskable-512.png",
-  "/icons/v2/apple-touch-icon-180.png",
+  "/icons/v3/icon-192.png",
+  "/icons/v3/icon-512.png",
+  "/icons/v3/icon-maskable-512.png",
+  "/icons/v3/apple-touch-icon-180.png",
   "/apple-touch-icon.png",
+  "/edro-logo.jpg",
   "/favicon-32.png",
 ];
 

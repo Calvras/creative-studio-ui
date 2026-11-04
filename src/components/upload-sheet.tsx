@@ -1,5 +1,14 @@
 import { useRef, useState } from "react";
-import { AudioLines, FileText, Film, ImageIcon, Loader2, Upload } from "lucide-react";
+import {
+  AudioLines,
+  FileText,
+  Film,
+  ImageIcon,
+  Images,
+  Loader2,
+  ShieldCheck,
+  Upload,
+} from "lucide-react";
 import { BottomSheet } from "@/components/ui/overlays";
 import { acceptFor } from "@/lib/media";
 import type { MediaKind } from "@/lib/types";
@@ -40,6 +49,15 @@ export function UploadSheet({
     const input = inputRef.current;
     if (!input) return;
     input.accept = acceptFor(kind);
+    input.multiple = true;
+    input.click();
+  }
+
+  function chooseAllMedia() {
+    const input = inputRef.current;
+    if (!input) return;
+    input.accept = "image/*,video/*";
+    input.multiple = true;
     input.click();
   }
 
@@ -80,29 +98,66 @@ export function UploadSheet({
           : "Everything is processed and stored on this device. Nothing is uploaded."
       }
     >
-      <div className="grid grid-cols-2 gap-3">
-        {choices.map((choice) => {
-          const Icon = choice.icon;
-          const wide = choice.kind === "all";
-          return (
-            <button
-              key={choice.kind}
-              disabled={busy}
-              onClick={() => choose(choice.kind)}
-              className={`flex flex-col items-start gap-3 rounded-2xl bg-surface-2 px-4 py-4 text-left transition active:scale-[0.98] disabled:opacity-50 ${
-                wide ? "col-span-2 flex-row items-center gap-4" : ""
-              }`}
-            >
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-brand/15 text-brand">
-                <Icon className="h-5 w-5" strokeWidth={1.6} />
-              </span>
-              <span>
-                <span className="block text-sm font-medium">{choice.label}</span>
-                <span className="mt-0.5 block text-[10px] text-ink-dim">{choice.hint}</span>
-              </span>
-            </button>
-          );
-        })}
+      {mode === "project" && (
+        <div className="rounded-3xl bg-surface-2/70 p-4">
+          <div className="flex items-start gap-3">
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-brand/15 text-brand">
+              <Images className="h-5 w-5" strokeWidth={1.7} />
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold">Allow full access</p>
+              <p className="mt-1 text-[11px] leading-snug text-ink-dim">
+                Edro asks your device for access to your photos and videos. The picker then shows
+                your library — choose one or several.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={chooseAllMedia}
+            disabled={busy}
+            className="mt-4 w-full rounded-full bg-brand py-3.5 text-sm font-semibold text-sky-ink transition active:scale-[0.99] disabled:opacity-50"
+          >
+            Allow full access
+          </button>
+          <p className="mt-2.5 flex items-center justify-center gap-1.5 text-[10px] text-ink-dim">
+            <ShieldCheck className="h-3 w-3" /> Nothing uploads — media stays on this device
+          </p>
+        </div>
+      )}
+
+      <p
+        className={`flex items-center justify-between px-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-dim ${
+          mode === "project" ? "mt-5" : ""
+        }`}
+      >
+        {mode === "project" ? "Or pick a format" : "What are you adding?"}
+      </p>
+
+      <div className="mt-2 grid grid-cols-2 gap-3">
+        {choices
+          .filter((choice) => mode === "add" || choice.kind !== "all")
+          .map((choice) => {
+            const Icon = choice.icon;
+            const wide = choice.kind === "all";
+            return (
+              <button
+                key={choice.kind}
+                disabled={busy}
+                onClick={() => choose(choice.kind)}
+                className={`flex flex-col items-start gap-3 rounded-2xl bg-surface-2 px-4 py-4 text-left transition active:scale-[0.98] disabled:opacity-50 ${
+                  wide ? "col-span-2 flex-row items-center gap-4" : ""
+                }`}
+              >
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-brand/15 text-brand">
+                  <Icon className="h-5 w-5" strokeWidth={1.6} />
+                </span>
+                <span>
+                  <span className="block text-sm font-medium">{choice.label}</span>
+                  <span className="mt-0.5 block text-[10px] text-ink-dim">{choice.hint}</span>
+                </span>
+              </button>
+            );
+          })}
       </div>
 
       <div

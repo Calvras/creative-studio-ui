@@ -4,12 +4,12 @@ import { HomeScreen } from "@/components/home-screen";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "EDIT+ — Photo & Video Editor" },
+      { title: "Edro — Photo & Video Editor" },
       {
         name: "description",
         content: "Import photos, videos, audio and documents, then edit them on a real timeline.",
       },
-      { property: "og:title", content: "EDIT+ — Photo & Video Editor" },
+      { property: "og:title", content: "Edro — Photo & Video Editor" },
       {
         property: "og:description",
         content: "Photo and video editing with a real timeline, text, audio and effects.",

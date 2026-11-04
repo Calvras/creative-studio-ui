@@ -19,7 +19,7 @@ import { storageUsage } from "@/lib/media-db";
 import { formatBytes, formatDate } from "@/lib/format";
 
 export const Route = createFileRoute("/me")({
-  head: () => meta("Profile — EDIT+", "Your EDIT+ profile, on-device storage and plan status."),
+  head: () => meta("Profile — Edro", "Your Edro profile, on-device storage and plan status."),
   component: Me,
 });
 
@@ -116,7 +116,7 @@ function Me() {
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="flex items-center gap-1.5 font-display text-lg">
-              <Gem className="h-4 w-4" /> {trialStarted ? "CREATOR TRIAL" : "EDIT+ ULTRA"}
+              <Gem className="h-4 w-4" /> {trialStarted ? "CREATOR TRIAL" : "EDRO ULTRA"}
             </p>
             <p className="mt-1 text-xs opacity-75">
               {trialStarted

@@ -30,7 +30,7 @@ import type { Project, ProjectKind } from "@/lib/types";
 
 export const Route = createFileRoute("/projects")({
   head: () =>
-    meta("Projects — EDIT+", "All projects stored on this device, searchable and filterable."),
+    meta("Projects — Edro", "All projects stored on this device, searchable and filterable."),
   component: Projects,
 });
 

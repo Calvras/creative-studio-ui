@@ -172,13 +172,13 @@ export function HomeScreen() {
         className="flex-1 overflow-y-auto px-5 [scrollbar-width:none]"
         style={{
           paddingTop: "max(1rem, calc(env(safe-area-inset-top) + 0.5rem))",
-          paddingBottom: "calc(7.5rem + env(safe-area-inset-bottom))",
+          paddingBottom: "calc(7rem + env(safe-area-inset-bottom))",
         }}
       >
         <header className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2">
-            <img src="/logo.jpg" alt="" className="h-8 w-8 rounded-lg object-cover" />
-            <h1 className="font-display text-xl">EDIT+</h1>
+            <img src="/edro-logo.jpg" alt="" className="h-8 w-8 rounded-lg object-cover" />
+            <h1 className="font-display text-xl">Edro</h1>
           </div>
           <div className="flex items-center gap-2">
             <button

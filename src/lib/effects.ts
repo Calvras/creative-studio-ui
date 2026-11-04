@@ -116,18 +116,30 @@ export const EFFECT_PRESETS: EffectPreset[] = [
   },
 ];
 
+export type AnimationCategory = "Basic" | "Motion" | "Style" | "3D";
+
 export interface AnimationDef {
   id: string;
   label: string;
   className: string;
+  category: AnimationCategory;
 }
 
+export const ANIMATION_CATEGORIES: AnimationCategory[] = ["Basic", "Motion", "Style", "3D"];
+
 export const ANIMATIONS: AnimationDef[] = [
-  { id: "fade", label: "Fade in", className: "clip-anim-fade" },
-  { id: "slide", label: "Slide in", className: "clip-anim-slide" },
-  { id: "zoom", label: "Zoom in", className: "clip-anim-zoom" },
-  { id: "pop", label: "Pop", className: "clip-anim-pop" },
-  { id: "spin", label: "Spin in", className: "clip-anim-spin" },
+  { id: "fade", label: "Fade in", className: "clip-anim-fade", category: "Basic" },
+  { id: "zoom", label: "Zoom in", className: "clip-anim-zoom", category: "Basic" },
+  { id: "pop", label: "Pop", className: "clip-anim-pop", category: "Basic" },
+  { id: "slide", label: "Slide in", className: "clip-anim-slide", category: "Motion" },
+  { id: "rise", label: "Rise", className: "clip-anim-rise", category: "Motion" },
+  { id: "drop", label: "Drop", className: "clip-anim-drop", category: "Motion" },
+  { id: "tilt", label: "Tilt", className: "clip-anim-tilt", category: "Style" },
+  { id: "blur", label: "Blur in", className: "clip-anim-blur", category: "Style" },
+  { id: "glitch", label: "Glitch", className: "clip-anim-glitch", category: "Style" },
+  { id: "spin", label: "Spin in", className: "clip-anim-spin", category: "Style" },
+  { id: "flip", label: "Flip 3D", className: "clip-anim-flip", category: "3D" },
+  { id: "swing", label: "Swing", className: "clip-anim-swing", category: "3D" },
 ];
 
 export function animationClass(animation: string | null): string {

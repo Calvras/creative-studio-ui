@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft,
+  Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Clapperboard,
@@ -10,16 +12,21 @@ import {
   FolderOpen,
   LayoutGrid,
   Loader2,
-  MoreHorizontal,
+  Maximize2,
+  Minimize2,
   Music,
   Pause,
   Play,
   Plus,
   Search,
+  Sparkles,
   Trash2,
+  Type,
   Undo2,
   Redo2,
   Volume2,
+  VolumeX,
+  X,
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
@@ -50,6 +57,22 @@ import { getMedia } from "@/lib/media-db";
 
 const BASE_PREVIEW_WIDTH = 390;
 const MIN_CLIP = 0.3;
+
+const DOCK_LABELS: Record<string, string> = {
+  split: "Split",
+  audio: "Volume",
+  text: "Text",
+  animate: "Animations",
+  effects: "Effects",
+  stickers: "Stickers",
+  filters: "Filters",
+  adjust: "Adjust",
+  speed: "Speed",
+  crop: "Crop",
+  "duplicate-clip": "Duplicate",
+  "extract-audio": "Extract",
+  "delete-clip": "Delete",
+};
 
 function safeFileName(name: string): string {
   return (
@@ -131,6 +154,7 @@ export function EditorScreen({
   const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
   const [selectedOverlayId, setSelectedOverlayId] = useState<string | null>(null);
   const [panel, setPanel] = useState<PanelId | null>(null);
+  const [immersive, setImmersive] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
@@ -172,7 +196,7 @@ export function EditorScreen({
   const previewBox = usePreviewSize(
     previewHostRef,
     ratio,
-    `${project?.id ?? ""}|${panel}|${selectedClipId ?? ""}`,
+    `${project?.id ?? ""}|${panel}|${selectedClipId ?? ""}|${immersive}`,
   );
 
   const activeClip = useMemo(() => {
@@ -1179,114 +1203,99 @@ export function EditorScreen({
     ticks.push(Math.round(time * 100) / 100);
   const showClipTools = selectedClip !== null && panel === null;
 
-  const headerTitle = project.name;
   const clipTool = (id: string) => toolById(id);
 
   return (
     <div className="relative flex h-dvh w-full flex-col overflow-hidden bg-phone text-ink">
       {/* Top bar */}
-      <div
-        className="flex items-center gap-1.5 px-5 pb-3"
-        style={{ paddingTop: "max(0.85rem, calc(env(safe-area-inset-top) + 0.5rem))" }}
-      >
-        <button
-          onClick={() => navigate({ to: "/" })}
-          className="-ml-2 grid h-10 w-10 place-items-center rounded-full text-ink"
-          aria-label="Back to projects"
+      {!immersive && (
+        <div
+          className="flex items-center gap-1 px-4 pb-2.5"
+          style={{ paddingTop: "max(0.9rem, calc(env(safe-area-inset-top) + 0.55rem))" }}
         >
-          <ArrowLeft className="h-5 w-5" />
-        </button>
-        <button
-          onClick={() => setRenameOpen(true)}
-          className="min-w-0 flex-1 text-left"
-          aria-label="Rename project"
-        >
-          <span className="block truncate text-sm font-semibold">{headerTitle}</span>
-          <span className="mt-0.5 block truncate text-[10px] uppercase tracking-wider text-ink-dim">
-            {project.aspect} ·{" "}
-            {project.kind === "photo"
-              ? "Photo"
-              : project.kind === "video"
-                ? "Video"
-                : project.kind === "audio"
-                  ? "Audio"
-                  : project.kind === "document"
-                    ? "File"
-                    : "Project"}
-          </span>
-        </button>
-        <button
-          onClick={() => setSearchOpen(true)}
-          className="grid h-10 w-10 place-items-center rounded-full text-ink-dim transition hover:text-ink"
-          aria-label="Search tools"
-        >
-          <Search className="h-4 w-4" />
-        </button>
-        <div className="relative">
           <button
-            onClick={() => setMenuOpen((value) => !value)}
-            className="grid h-10 w-10 place-items-center rounded-full bg-surface-2 text-ink"
-            aria-label="Project menu"
-            aria-expanded={menuOpen}
+            onClick={() => navigate({ to: "/" })}
+            className="-ml-1.5 grid h-11 w-11 place-items-center rounded-full text-ink active:opacity-70"
+            aria-label="Back to projects"
           >
-            <MoreHorizontal className="h-4 w-4" />
+            <X className="h-[26px] w-[26px]" strokeWidth={1.7} />
           </button>
-          {menuOpen && (
-            <>
-              <button
-                className="fixed inset-0 z-20 cursor-default"
-                onClick={() => setMenuOpen(false)}
-                aria-label="Close menu"
-              />
-              <div
-                className="absolute right-0 top-11 z-30 min-w-[180px] overflow-hidden rounded-2xl bg-surface-2 shadow-xl ring-1 ring-white/10"
-                role="menu"
-              >
-                {[
-                  { id: "save", label: "Save draft" },
-                  { id: "rename", label: "Rename project" },
-                  { id: "duplicate", label: "Duplicate project" },
-                  { id: "export", label: "Export" },
-                  { id: "delete", label: "Delete project" },
-                ].map((item) => (
-                  <button
-                    key={item.id}
-                    role="menuitem"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      if (item.id === "save") setToast("Draft saved on this device");
-                      if (item.id === "rename") setRenameOpen(true);
-                      if (item.id === "duplicate") void handleDuplicateProject();
-                      if (item.id === "export") setPanel("export");
-                      if (item.id === "delete") setDeleteOpen(true);
-                    }}
-                    className={`flex w-full items-center gap-2 px-4 py-3 text-left text-xs transition hover:bg-surface ${item.id === "delete" ? "text-red-400" : "text-ink"}`}
-                  >
-                    {item.id === "delete" && <Trash2 className="h-3.5 w-3.5" />}
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
+          <button
+            onClick={() => setSearchOpen(true)}
+            className="grid h-11 w-11 place-items-center rounded-full text-ink active:opacity-70"
+            aria-label="Search tools"
+          >
+            <Search className="h-[21px] w-[21px]" strokeWidth={1.8} />
+          </button>
+          <div className="flex-1" />
+          <div className="relative">
+            <button
+              onClick={() => setMenuOpen((value) => !value)}
+              className="flex h-10 items-center gap-1 rounded-xl bg-surface-2 px-3.5 text-[13px] font-medium text-ink active:scale-[0.97]"
+              aria-label="Project menu"
+              aria-expanded={menuOpen}
+            >
+              {project.aspect}
+              <ChevronDown className="h-4 w-4 text-ink-dim" strokeWidth={2} />
+            </button>
+            {menuOpen && (
+              <>
+                <button
+                  className="fixed inset-0 z-20 cursor-default"
+                  onClick={() => setMenuOpen(false)}
+                  aria-label="Close menu"
+                />
+                <div
+                  className="absolute right-0 top-12 z-30 min-w-[200px] overflow-hidden rounded-2xl bg-surface-2 py-1 shadow-xl ring-1 ring-white/10"
+                  role="menu"
+                >
+                  {[
+                    { id: "canvas", label: "Aspect ratio & background" },
+                    { id: "rename", label: "Rename project" },
+                    { id: "duplicate", label: "Duplicate project" },
+                    { id: "save", label: "Save draft" },
+                    { id: "delete", label: "Delete project" },
+                  ].map((item) => (
+                    <button
+                      key={item.id}
+                      role="menuitem"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        if (item.id === "canvas") setPanel("canvas");
+                        if (item.id === "rename") setRenameOpen(true);
+                        if (item.id === "duplicate") void handleDuplicateProject();
+                        if (item.id === "save") setToast("Draft saved on this device");
+                        if (item.id === "delete") setDeleteOpen(true);
+                      }}
+                      className={`flex w-full items-center gap-2 px-4 py-2.5 text-left text-xs transition hover:bg-surface ${item.id === "delete" ? "text-red-400" : "text-ink"}`}
+                    >
+                      {item.id === "delete" && <Trash2 className="h-3.5 w-3.5" />}
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+          <button
+            onClick={() => setPanel("export")}
+            className="ml-1 flex h-10 items-center gap-1.5 rounded-xl bg-brand px-4 text-[13px] font-semibold text-sky-ink active:scale-[0.97]"
+          >
+            <Download className="h-4 w-4" strokeWidth={2.2} />
+            Export
+          </button>
         </div>
-        <button
-          onClick={() => setPanel("export")}
-          className="rounded-full bg-brand px-4 py-2 text-[13px] font-semibold text-sky-ink active:scale-95"
-        >
-          Export
-        </button>
-      </div>
+      )}
 
       {/* Preview */}
       <div
         ref={previewHostRef}
-        className="relative flex min-h-[140px] flex-1 items-center justify-center px-4 py-1"
+        className={`relative flex min-h-[120px] flex-1 items-center justify-center ${immersive ? "px-2 py-1" : "px-5 py-1"}`}
       >
         {previewBox.width > 0 && (
           <div
             ref={previewRef}
-            className="relative overflow-hidden rounded-2xl shadow-2xl ring-1 ring-white/5"
+            className="relative overflow-hidden rounded-[4px] shadow-[0_18px_50px_rgba(0,0,0,0.45)] ring-1 ring-white/10"
             style={{
               width: previewBox.width,
               height: previewBox.height,
@@ -1401,269 +1410,339 @@ export function EditorScreen({
         )}
       </div>
 
-      {/* Playback bar */}
-      <div className="mx-4 mt-2 flex items-center justify-between rounded-2xl bg-surface px-3 py-2">
-        <button
-          onClick={undo}
-          className="grid h-9 w-9 place-items-center rounded-full text-ink-dim disabled:opacity-30"
-          aria-label="Undo"
-          disabled={undoRef.current.length === 0}
-          key={`undo-${historyTick}`}
-        >
-          <Undo2 className="h-4 w-4" />
-        </button>
-        <button
-          onClick={togglePlay}
-          className="grid h-10 w-10 place-items-center rounded-full bg-ink text-phone active:scale-95"
-          aria-label={playing ? "Pause" : "Play"}
-        >
-          {playing ? (
-            <Pause className="h-4 w-4 fill-current" />
-          ) : (
-            <Play className="h-4 w-4 translate-x-[1px] fill-current" />
-          )}
-        </button>
-        <div className="tabular-nums text-[11px] text-ink-dim">
-          <span className="text-ink">{formatClock(currentTime)}</span> / {formatTime(duration)}
+      {/* Transport row */}
+      <div className="grid shrink-0 grid-cols-3 items-center px-5 py-2.5">
+        <div className="flex justify-start">
+          <button
+            onClick={() => setImmersive((value) => !value)}
+            className="grid h-10 w-10 place-items-center rounded-full text-ink active:opacity-70"
+            aria-label={immersive ? "Exit full screen" : "Full screen preview"}
+          >
+            {immersive ? (
+              <Minimize2 className="h-[21px] w-[21px]" strokeWidth={1.7} />
+            ) : (
+              <Maximize2 className="h-[21px] w-[21px]" strokeWidth={1.7} />
+            )}
+          </button>
         </div>
-        <button
-          onClick={redo}
-          className="grid h-9 w-9 place-items-center rounded-full text-ink-dim disabled:opacity-30"
-          aria-label="Redo"
-          disabled={redoRef.current.length === 0}
-          key={`redo-${historyTick}`}
-        >
-          <Redo2 className="h-4 w-4" />
-        </button>
+        <div className="flex justify-center">
+          <button
+            onClick={togglePlay}
+            className="grid h-12 w-12 place-items-center rounded-full text-ink active:scale-95"
+            aria-label={playing ? "Pause" : "Play"}
+          >
+            {playing ? (
+              <Pause className="h-7 w-7 fill-current" strokeWidth={1.4} />
+            ) : (
+              <Play className="h-7 w-7 translate-x-[2px] fill-current" strokeWidth={1.4} />
+            )}
+          </button>
+        </div>
+        <div className="flex items-center justify-end gap-1">
+          <button
+            onClick={() => navigate({ to: "/ai-lab" })}
+            className="grid h-10 w-10 place-items-center rounded-full text-ink active:opacity-70"
+            aria-label="Open AI Lab"
+          >
+            <Sparkles className="h-[19px] w-[19px]" strokeWidth={1.6} />
+          </button>
+          <button
+            onClick={undo}
+            className="grid h-10 w-10 place-items-center rounded-full text-ink active:opacity-70 disabled:opacity-30"
+            aria-label="Undo"
+            disabled={undoRef.current.length === 0}
+            key={`undo-${historyTick}`}
+          >
+            <Undo2 className="h-[19px] w-[19px]" strokeWidth={1.6} />
+          </button>
+          <button
+            onClick={redo}
+            className="grid h-10 w-10 place-items-center rounded-full text-ink active:opacity-70 disabled:opacity-30"
+            aria-label="Redo"
+            disabled={redoRef.current.length === 0}
+            key={`redo-${historyTick}`}
+          >
+            <Redo2 className="h-[19px] w-[19px]" strokeWidth={1.6} />
+          </button>
+        </div>
       </div>
 
       {/* Timeline — hidden while a tool panel is open so the panel never clips. */}
-      {panel === null && (
-        <div className="mt-3 shrink-0">
-          <div className="mb-2 flex items-center justify-between px-5">
-            <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-dim">
-              Timeline
-              <span className="rounded bg-surface px-1.5 py-0.5 text-[9px] font-normal normal-case tracking-normal">
-                {clips.length} clip{clips.length === 1 ? "" : "s"}
-              </span>
+      {panel === null && !immersive && (
+        <div className="mt-1 shrink-0 border-t border-white/[0.06] pt-1.5">
+          <div className="flex items-center gap-1 px-4 pb-1">
+            <span className="text-[11px] tabular-nums text-ink-dim">
+              <span className="text-ink">{formatClock(currentTime)}</span> / {formatTime(duration)}
             </span>
-            <div className="flex items-center gap-1.5">
+            <div className="ml-auto flex items-center gap-0.5">
               <button
                 onClick={() => setUploadOpen(true)}
-                className="grid h-7 w-7 place-items-center rounded-full bg-surface-2"
+                className="grid h-8 w-8 place-items-center rounded-full text-ink-dim active:bg-surface-2"
                 aria-label="Add media"
               >
-                <Plus className="h-3.5 w-3.5" />
+                <Plus className="h-[17px] w-[17px]" strokeWidth={1.8} />
               </button>
               <button
                 onClick={() => setPxPerSec((value) => clamp(value - 10, 16, 140))}
-                className="grid h-7 w-7 place-items-center rounded-full bg-surface-2"
-                aria-label="Zoom out"
+                className="grid h-8 w-8 place-items-center rounded-full text-ink-dim active:bg-surface-2"
+                aria-label="Zoom out timeline"
               >
-                <ZoomOut className="h-3 w-3" />
+                <ZoomOut className="h-4 w-4" strokeWidth={1.8} />
               </button>
               <button
                 onClick={() => setPxPerSec((value) => clamp(value + 10, 16, 140))}
-                className="grid h-7 w-7 place-items-center rounded-full bg-surface-2"
-                aria-label="Zoom in"
+                className="grid h-8 w-8 place-items-center rounded-full text-ink-dim active:bg-surface-2"
+                aria-label="Zoom in timeline"
               >
-                <ZoomIn className="h-3 w-3" />
+                <ZoomIn className="h-4 w-4" strokeWidth={1.8} />
               </button>
-              {selectedClip && (
-                <button
-                  onClick={() => {
-                    setSelectedClipId(null);
-                    setPanel(null);
-                  }}
-                  className="ml-0.5 grid h-7 w-7 place-items-center rounded-full bg-surface-2"
-                  aria-label="Clear clip selection"
-                >
-                  <ChevronLeft className="h-3 w-3 rotate-90" />
-                </button>
-              )}
             </div>
           </div>
 
-          <div
-            ref={scrollRef}
-            className="overflow-x-auto overscroll-x-contain pb-2 [scrollbar-width:none]"
-          >
-            <div className="relative pl-4 pr-4" style={{ width: Math.max(totalWidth + 32, 288) }}>
-              {/* ruler */}
-              <div
-                className="relative h-5 cursor-ew-resize touch-none select-none"
-                onPointerDown={(event) => {
-                  event.currentTarget.setPointerCapture(event.pointerId);
-                  seekFromEvent(event);
-                }}
-                onPointerMove={(event) => {
-                  if (event.buttons === 1) seekFromEvent(event);
-                }}
+          <div className="flex">
+            <div className="flex w-[62px] shrink-0 flex-col pl-2 pr-1.5">
+              <div className="h-5" />
+              <button
+                onClick={() => targetClip && patchClip(targetClip.id, { muted: !targetClip.muted })}
+                disabled={!targetClip}
+                className="mt-1 flex h-[56px] flex-col items-center justify-center gap-1 rounded-xl text-ink-dim transition active:bg-surface-2 disabled:opacity-35"
+                aria-label={targetClip?.muted ? "Unmute clip audio" : "Mute clip audio"}
               >
-                {ticks.map((time) => (
-                  <span
-                    key={time}
-                    className="absolute top-0 text-[9px] tabular-nums text-ink-dim"
-                    style={{ left: time * pxPerSec }}
-                  >
-                    {time === 0 ? "0s" : formatTime(time)}
-                    <span className="absolute left-0 top-3.5 h-1.5 w-px bg-ink/25" />
-                  </span>
-                ))}
-              </div>
-
-              {/* visual track */}
-              <div className="relative mt-1.5 h-[58px] rounded-xl bg-surface/60">
-                {clips.length === 0 && (
-                  <button
-                    onClick={() => setUploadOpen(true)}
-                    className="absolute inset-2 flex items-center justify-center gap-1.5 rounded-md border border-dashed border-ink/15 text-[10px] text-ink-dim"
-                  >
-                    <Plus className="h-3.5 w-3.5" /> Add photo, video or file
-                  </button>
+                {targetClip?.muted ? (
+                  <VolumeX className="h-[18px] w-[18px]" strokeWidth={1.6} />
+                ) : (
+                  <Volume2 className="h-[18px] w-[18px]" strokeWidth={1.6} />
                 )}
-                {clips.map((clip) => {
-                  const asset = project.media.find((item) => item.id === clip.assetId);
-                  const selected = clip.id === selectedClipId;
-                  const width = Math.max(26, clip.duration * pxPerSec);
-                  return (
-                    <div
-                      key={clip.id}
-                      role="button"
-                      tabIndex={0}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        setPanel(null);
-                        setSelectedClipId(selected ? null : clip.id);
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") setSelectedClipId(selected ? null : clip.id);
-                      }}
-                      className={`absolute top-0 h-full overflow-hidden rounded-md border-2 bg-surface-2 ${
-                        selected ? "border-brand" : "border-transparent"
-                      }`}
-                      style={{ left: clip.start * pxPerSec, width }}
-                      aria-label={`${asset?.name ?? "Clip"} ${formatTime(clip.duration)}`}
+                <span className="px-0.5 text-center text-[8.5px] leading-tight">
+                  {targetClip?.muted ? "Unmute" : "Mute clip"}
+                  <br />
+                  audio
+                </span>
+              </button>
+              <button
+                onClick={() => setPanel("audio")}
+                className="mt-1.5 grid h-9 place-items-center rounded-lg bg-surface/70 text-ink-dim active:bg-surface-2"
+                aria-label="Music tracks"
+              >
+                <Music className="h-[17px] w-[17px]" strokeWidth={1.7} />
+              </button>
+              <button
+                onClick={addText}
+                className="mt-1.5 grid h-9 place-items-center rounded-lg bg-surface/70 text-ink-dim active:bg-surface-2"
+                aria-label="Add text"
+              >
+                <Type className="h-[17px] w-[17px]" strokeWidth={1.7} />
+              </button>
+            </div>
+            <div
+              ref={scrollRef}
+              className="min-w-0 flex-1 overflow-x-auto overscroll-x-contain pb-2 pr-4 [scrollbar-width:none]"
+            >
+              <div
+                className="relative min-w-full"
+                style={{ width: Math.max(totalWidth + 32, 288) }}
+              >
+                {/* ruler */}
+                <div
+                  className="relative h-5 cursor-ew-resize touch-none select-none"
+                  onPointerDown={(event) => {
+                    event.currentTarget.setPointerCapture(event.pointerId);
+                    seekFromEvent(event);
+                  }}
+                  onPointerMove={(event) => {
+                    if (event.buttons === 1) seekFromEvent(event);
+                  }}
+                >
+                  {ticks.map((time) => (
+                    <span
+                      key={time}
+                      className="absolute top-0 text-[9px] tabular-nums text-ink-dim"
+                      style={{ left: time * pxPerSec }}
                     >
-                      {asset?.thumb ? (
+                      {time === 0 ? "0s" : formatTime(time)}
+                      <span className="absolute left-0 top-3.5 h-1.5 w-px bg-ink/25" />
+                    </span>
+                  ))}
+                </div>
+
+                {/* visual track */}
+                <div className="relative mt-1 h-[56px] rounded-md bg-surface/50">
+                  {clips.length === 0 && (
+                    <button
+                      onClick={() => setUploadOpen(true)}
+                      className="absolute inset-1.5 flex items-center justify-center gap-1.5 rounded border border-dashed border-ink/15 text-[10px] text-ink-dim"
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Add photo, video or file
+                    </button>
+                  )}
+                  {clips.map((clip) => {
+                    const asset = project.media.find((item) => item.id === clip.assetId);
+                    const selected = clip.id === selectedClipId;
+                    const width = Math.max(26, clip.duration * pxPerSec);
+                    return (
+                      <div
+                        key={clip.id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setPanel(null);
+                          setSelectedClipId(selected ? null : clip.id);
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") setSelectedClipId(selected ? null : clip.id);
+                        }}
+                        className={`absolute top-0 h-full overflow-hidden rounded-md border-2 bg-surface-2 ${
+                          selected ? "border-brand" : "border-transparent"
+                        }`}
+                        style={{ left: clip.start * pxPerSec, width }}
+                        aria-label={`${asset?.name ?? "Clip"} ${formatTime(clip.duration)}`}
+                      >
+                        {asset?.thumb ? (
+                          <img
+                            src={asset.thumb}
+                            alt=""
+                            className="h-full w-full object-cover opacity-85"
+                            draggable={false}
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-ink-dim">
+                            {asset?.kind === "document" ? (
+                              <FileText className="h-4 w-4" />
+                            ) : (
+                              <Clapperboard className="h-4 w-4" />
+                            )}
+                          </div>
+                        )}
+                        <span className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/80 to-transparent px-1.5 pb-1 pt-3 text-[9px] text-white">
+                          {asset?.name ?? "Clip"}
+                        </span>
+                        {clip.animation && (
+                          <span className="absolute left-1 top-1 rounded bg-black/60 px-1 text-[7px] text-white">
+                            fx
+                          </span>
+                        )}
+                        {clip.muted && (
+                          <span className="absolute right-1 top-1 rounded bg-black/60 px-1 text-[7px] text-white">
+                            mute
+                          </span>
+                        )}
+                        {selected && (
+                          <>
+                            <div
+                              role="slider"
+                              tabIndex={0}
+                              aria-label="Trim clip start"
+                              onPointerDown={(event) => beginTrim(event, clip, "left")}
+                              onPointerMove={moveTrim}
+                              onPointerUp={() => {
+                                trimRef.current = null;
+                              }}
+                              className="absolute inset-y-0 left-0 z-10 flex w-3.5 cursor-ew-resize touch-none items-center justify-center bg-brand/90"
+                            >
+                              <span className="h-4 w-0.5 rounded bg-white/90" />
+                            </div>
+                            <div
+                              role="slider"
+                              tabIndex={0}
+                              aria-label="Trim clip end"
+                              onPointerDown={(event) => beginTrim(event, clip, "right")}
+                              onPointerMove={moveTrim}
+                              onPointerUp={() => {
+                                trimRef.current = null;
+                              }}
+                              className="absolute inset-y-0 right-0 z-10 flex w-3.5 cursor-ew-resize touch-none items-center justify-center bg-brand/90"
+                            >
+                              <span className="h-4 w-0.5 rounded bg-white/90" />
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {clips.length > 0 && (
+                    <button
+                      onClick={() => setUploadOpen(true)}
+                      style={{ left: duration * pxPerSec + 8 }}
+                      className="absolute top-1 grid h-11 w-10 place-items-center rounded-md bg-white text-black shadow-md active:scale-95"
+                      aria-label="Add clip"
+                    >
+                      <Plus className="h-5 w-5" strokeWidth={2.4} />
+                    </button>
+                  )}
+
+                  {/* playhead */}
+                  <div
+                    className="pointer-events-none absolute -top-4 bottom-0 z-20 w-px bg-white"
+                    style={{ left: currentTime * pxPerSec }}
+                  >
+                    <span className="absolute -left-1 -top-0.5 h-2.5 w-2.5 rounded-sm bg-white" />
+                  </div>
+                </div>
+
+                {/* add rows */}
+                <button
+                  onClick={() => setPanel("audio")}
+                  className="mt-1.5 flex h-9 w-full items-center gap-2 rounded-md bg-surface/60 px-3 text-[11px] text-ink-dim transition active:bg-surface"
+                >
+                  <Plus className="h-4 w-4" strokeWidth={1.8} /> Add audio
+                </button>
+                <button
+                  onClick={addText}
+                  className="mt-1.5 flex h-9 w-full items-center gap-2 rounded-md bg-surface/60 px-3 text-[11px] text-ink-dim transition active:bg-surface"
+                >
+                  <Plus className="h-4 w-4" strokeWidth={1.8} /> Add text
+                </button>
+
+                {/* audio tracks */}
+                {audioTracks.slice(0, 2).map((track) => {
+                  const asset = project.media.find((item) => item.id === track.assetId);
+                  return (
+                    <button
+                      key={track.id}
+                      onClick={() => {
+                        setPanel("audio");
+                        setSelectedClipId(null);
+                      }}
+                      className="relative mt-1.5 flex h-9 w-full items-center overflow-hidden rounded-md bg-surface/70 text-left"
+                      aria-label={`Audio track ${asset?.name ?? ""}`}
+                    >
+                      {asset?.thumb && (
                         <img
                           src={asset.thumb}
                           alt=""
-                          className="h-full w-full object-cover opacity-85"
-                          draggable={false}
+                          className="absolute inset-0 h-full w-full object-cover opacity-25"
                         />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center text-ink-dim">
-                          {asset?.kind === "document" ? (
-                            <FileText className="h-4 w-4" />
-                          ) : (
-                            <Clapperboard className="h-4 w-4" />
-                          )}
-                        </div>
                       )}
-                      <span className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/80 to-transparent px-1.5 pb-1 pt-3 text-[9px] text-white">
-                        {asset?.name ?? "Clip"}
+                      <span className="relative flex min-w-0 items-center gap-1.5 px-2.5 text-[9px] text-ink">
+                        <Music className="h-3 w-3 text-brand" />
+                        <span className="truncate">{asset?.name ?? "Audio track"}</span>
                       </span>
-                      {clip.animation && (
-                        <span className="absolute left-1 top-1 rounded bg-black/60 px-1 text-[7px] text-white">
-                          fx
-                        </span>
-                      )}
-                      {clip.muted && (
-                        <span className="absolute right-1 top-1 rounded bg-black/60 px-1 text-[7px] text-white">
-                          mute
-                        </span>
-                      )}
-                      {selected && (
-                        <>
-                          <div
-                            role="slider"
-                            tabIndex={0}
-                            aria-label="Trim clip start"
-                            onPointerDown={(event) => beginTrim(event, clip, "left")}
-                            onPointerMove={moveTrim}
-                            onPointerUp={() => {
-                              trimRef.current = null;
-                            }}
-                            className="absolute inset-y-0 left-0 z-10 flex w-3.5 cursor-ew-resize touch-none items-center justify-center bg-brand/90"
-                          >
-                            <span className="h-4 w-0.5 rounded bg-white/90" />
-                          </div>
-                          <div
-                            role="slider"
-                            tabIndex={0}
-                            aria-label="Trim clip end"
-                            onPointerDown={(event) => beginTrim(event, clip, "right")}
-                            onPointerMove={moveTrim}
-                            onPointerUp={() => {
-                              trimRef.current = null;
-                            }}
-                            className="absolute inset-y-0 right-0 z-10 flex w-3.5 cursor-ew-resize touch-none items-center justify-center bg-brand/90"
-                          >
-                            <span className="h-4 w-0.5 rounded bg-white/90" />
-                          </div>
-                        </>
-                      )}
-                    </div>
+                      <span
+                        className="absolute inset-y-1 rounded-sm bg-brand/35"
+                        style={{
+                          left: track.start * pxPerSec,
+                          width: Math.max(24, track.duration * pxPerSec),
+                        }}
+                      />
+                      <div
+                        className="pointer-events-none absolute inset-y-0 z-10 w-px bg-white"
+                        style={{ left: currentTime * pxPerSec }}
+                      />
+                    </button>
                   );
                 })}
 
-                {/* playhead */}
-                <div
-                  className="pointer-events-none absolute -top-4 bottom-0 z-20 w-px bg-brand"
-                  style={{ left: currentTime * pxPerSec }}
-                >
-                  <span className="absolute -left-1 -top-0.5 h-2.5 w-2.5 rounded-sm bg-brand" />
-                </div>
-              </div>
-
-              {/* audio tracks */}
-              {audioTracks.slice(0, 2).map((track) => {
-                const asset = project.media.find((item) => item.id === track.assetId);
-                return (
+                {audioTracks.length > 2 && (
                   <button
-                    key={track.id}
-                    onClick={() => {
-                      setPanel("audio");
-                      setSelectedClipId(null);
-                    }}
-                    className="relative mt-1.5 flex h-8 w-full items-center overflow-hidden rounded-lg bg-surface/80 text-left"
-                    aria-label={`Audio track ${asset?.name ?? ""}`}
+                    onClick={() => setPanel("audio")}
+                    className="mt-1.5 w-full rounded-md bg-surface/60 py-1.5 text-[9px] text-ink-dim"
                   >
-                    {asset?.thumb && (
-                      <img
-                        src={asset.thumb}
-                        alt=""
-                        className="absolute inset-0 h-full w-full object-cover opacity-25"
-                      />
-                    )}
-                    <span className="relative flex min-w-0 items-center gap-1.5 px-2.5 text-[9px] text-ink">
-                      <Music className="h-3 w-3 text-brand" />
-                      <span className="truncate">{asset?.name ?? "Audio track"}</span>
-                    </span>
-                    <span
-                      className="absolute inset-y-1 rounded-sm bg-brand/35"
-                      style={{
-                        left: track.start * pxPerSec,
-                        width: Math.max(24, track.duration * pxPerSec),
-                      }}
-                    />
-                    <div
-                      className="pointer-events-none absolute inset-y-0 z-10 w-px bg-brand"
-                      style={{ left: currentTime * pxPerSec }}
-                    />
+                    +{audioTracks.length - 2} more audio tracks — open Audio
                   </button>
-                );
-              })}
-
-              {audioTracks.length > 2 && (
-                <button
-                  onClick={() => setPanel("audio")}
-                  className="mt-1.5 w-full rounded-lg bg-surface/60 py-1.5 text-[9px] text-ink-dim"
-                >
-                  +{audioTracks.length - 2} more audio tracks — open Audio
-                </button>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -1671,31 +1750,33 @@ export function EditorScreen({
 
       {/* Bottom tools */}
       <div
-        className="mt-2 shrink-0 border-t border-white/5 bg-phone"
-        style={{ paddingBottom: "max(0.85rem, env(safe-area-inset-bottom))" }}
+        className="shrink-0 bg-phone"
+        style={{ paddingBottom: "max(0.7rem, env(safe-area-inset-bottom))" }}
       >
         {panel !== null ? (
-          <div className="max-h-[44dvh] overflow-y-auto overscroll-contain px-5 pb-2 pt-3 [scrollbar-width:none]">
-            <div className="mb-3 flex items-center gap-2.5">
+          <div className="max-h-[46dvh] overflow-y-auto overscroll-contain px-4 pb-1 pt-3 [scrollbar-width:none]">
+            <div className="mb-3.5 flex items-center gap-2.5">
               <button
                 onClick={() => setPanel(null)}
-                className="grid h-8 w-8 place-items-center rounded-full bg-surface-2"
+                className="grid h-9 w-9 place-items-center rounded-full bg-surface-2"
                 aria-label="Back to tools"
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className="h-5 w-5" strokeWidth={1.8} />
               </button>
-              <span className="flex-1 text-[13px] font-semibold">{PANEL_TITLE[panel]}</span>
-              {targetClip && (
-                <span className="max-w-[35%] truncate text-[10px] text-ink-dim">
-                  {targetAsset?.name}
+              <span className="min-w-0 truncate text-[15px] font-semibold">
+                {PANEL_TITLE[panel]}
+              </span>
+              {targetAsset && (
+                <span className="ml-auto max-w-[34%] truncate text-[10px] text-ink-dim">
+                  {targetAsset.name}
                 </span>
               )}
               <button
-                onClick={() => setSearchOpen(true)}
-                className="grid h-8 w-8 place-items-center rounded-full bg-surface-2"
-                aria-label="Search tools"
+                onClick={() => setPanel(null)}
+                className="ml-auto grid h-9 w-9 place-items-center rounded-full bg-surface-2"
+                aria-label="Close panel"
               >
-                <Search className="h-3.5 w-3.5" />
+                <Check className="h-4 w-4" strokeWidth={2} />
               </button>
             </div>
             <EditorPanel
@@ -1707,68 +1788,49 @@ export function EditorScreen({
               actions={panelActions}
             />
           </div>
-        ) : showClipTools ? (
-          <div className="pt-3">
-            <div className="mb-2 flex items-center gap-2 px-5">
-              <span className="text-[11px] font-semibold">Clip tools</span>
-              <span className="min-w-0 flex-1 truncate text-[10px] text-ink-dim">
-                {selectedClip && targetAsset
-                  ? `${targetAsset.name} · ${formatTime(selectedClip.duration)}`
-                  : ""}
-              </span>
+        ) : (
+          <div className="flex items-stretch gap-2 px-3 pt-2">
+            {showClipTools && (
               <button
                 onClick={() => setSelectedClipId(null)}
-                className="text-ink-dim"
-                aria-label="Close clip tools"
+                className="grid w-11 shrink-0 place-items-center rounded-xl bg-surface-2 text-ink active:scale-95"
+                aria-label="Back to project tools"
               >
-                <ChevronLeft className="h-4 w-4 rotate-90" />
+                <ChevronLeft className="h-5 w-5" strokeWidth={1.8} />
               </button>
-            </div>
-            <div className="flex gap-2 overflow-x-auto px-5 pb-2 [scrollbar-width:none]">
-              {CLIP_TOOL_IDS.map((id) => {
+            )}
+            <div className="flex min-w-0 flex-1 gap-3 overflow-x-auto pb-0.5 [scrollbar-width:none]">
+              {(showClipTools ? CLIP_TOOL_IDS : MAIN_TOOL_IDS).map((id) => {
                 const tool = clipTool(id);
                 const Icon = tool.icon;
                 return (
                   <button
                     key={id}
                     onClick={() => runTool(tool)}
-                    className={`flex min-w-[60px] shrink-0 flex-col items-center gap-2 rounded-2xl px-3 py-2.5 transition active:scale-95 ${
+                    className={`flex w-[54px] shrink-0 flex-col items-center gap-2 py-0.5 transition active:scale-95 ${
                       tool.command === "deleteClip" ? "text-red-400" : "text-ink"
-                    } bg-surface-2/70`}
+                    }`}
                   >
-                    <Icon className="h-5 w-5" strokeWidth={1.6} />
-                    <span className="whitespace-nowrap text-[10px]">{tool.label}</span>
+                    <Icon className="h-[21px] w-[21px]" strokeWidth={1.6} />
+                    <span className="whitespace-nowrap text-[10px] leading-none">
+                      {DOCK_LABELS[id] ?? tool.label}
+                    </span>
                   </button>
                 );
               })}
-            </div>
-          </div>
-        ) : (
-          <div className="flex gap-2 overflow-x-auto px-5 pb-2 pt-3 [scrollbar-width:none]">
-            {MAIN_TOOL_IDS.map((id) => {
-              const tool = clipTool(id);
-              const Icon = tool.icon;
-              return (
+              {!showClipTools && (
                 <button
-                  key={id}
-                  onClick={() => runTool(tool)}
-                  className="flex min-w-[60px] shrink-0 flex-col items-center gap-2 rounded-2xl px-3 py-2.5 text-ink transition active:scale-95 hover:bg-surface-2/60"
+                  onClick={() => {
+                    setPanel("more");
+                    setSelectedClipId(null);
+                  }}
+                  className="flex w-[54px] shrink-0 flex-col items-center gap-2 py-0.5 text-ink-dim transition active:scale-95"
                 >
-                  <Icon className="h-5 w-5" strokeWidth={1.6} />
-                  <span className="whitespace-nowrap text-[10px]">{tool.label}</span>
+                  <LayoutGrid className="h-[21px] w-[21px]" strokeWidth={1.6} />
+                  <span className="whitespace-nowrap text-[10px] leading-none">All tools</span>
                 </button>
-              );
-            })}
-            <button
-              onClick={() => {
-                setPanel("more");
-                setSelectedClipId(null);
-              }}
-              className="flex min-w-[60px] shrink-0 flex-col items-center gap-2 rounded-2xl px-3 py-2.5 text-ink-dim transition active:scale-95 hover:bg-surface-2/60"
-            >
-              <LayoutGrid className="h-5 w-5" strokeWidth={1.6} />
-              <span className="whitespace-nowrap text-[10px]">All tools</span>
-            </button>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -1865,7 +1927,7 @@ function EditorTopBar({ onBack }: { onBack: () => void }) {
       >
         <ArrowLeft className="h-5 w-5" />
       </button>
-      <span className="text-sm font-semibold tracking-wide">EDIT+</span>
+      <span className="text-sm font-semibold tracking-wide">Edro</span>
     </div>
   );
 }
@@ -1981,8 +2043,8 @@ function EmptyEditor({ onCreate }: { onCreate: (files: File[]) => void }) {
         }}
       >
         <div className="mt-8 flex items-center justify-center gap-2">
-          <img src="/logo.jpg" alt="" className="h-9 w-9 rounded-xl object-cover" />
-          <span className="font-display text-xl">EDIT+</span>
+          <img src="/edro-logo.jpg" alt="" className="h-9 w-9 rounded-xl object-cover" />
+          <span className="font-display text-xl">Edro</span>
         </div>
         <EmptyState
           icon={<Clapperboard className="h-7 w-7" />}

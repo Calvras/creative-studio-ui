@@ -20,8 +20,8 @@ import { getTool } from "@/lib/tool-registry";
 export const Route = createFileRoute("/ai-lab")({
   head: () =>
     meta(
-      "EDIT+ AI — On-device editing assistant",
-      "Describe an edit and EDIT+ opens the right local tool.",
+      "Edro AI — On-device editing assistant",
+      "Describe an edit and Edro opens the right local tool.",
     ),
   component: AiLab,
 });
@@ -189,7 +189,7 @@ function AiLab() {
             <Sparkles className="h-5 w-5" />
           </span>
           <div>
-            <h1 className="font-display text-2xl leading-none">EDIT+ AI</h1>
+            <h1 className="font-display text-2xl leading-none">Edro AI</h1>
             <p className="mt-1 text-[11px] text-ink-dim">Your editing copilot</p>
           </div>
         </div>
@@ -350,7 +350,7 @@ function AiLab() {
       </section>
 
       <p className="mt-6 rounded-2xl bg-surface/50 px-4 py-3 text-[10px] leading-relaxed text-ink-dim">
-        EDIT+ AI runs on this device and routes your request into the local editor. Cloud generative
+        Edro AI runs on this device and routes your request into the local editor. Cloud generative
         models are not connected in this build, so nothing is uploaded.
       </p>
 
